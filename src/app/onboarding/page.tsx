@@ -57,7 +57,7 @@ export default function Onboarding() {
       
       // If user already completed onboarding, redirect
       if (profile.instruments?.length > 0) {
-        router.push("/");
+        router.push("/feed");
       } else {
         setStep(1); // Start at profile setup
       }
@@ -97,7 +97,7 @@ export default function Onboarding() {
           instruments: selectedInstruments,
           experience_level: experienceLevel,
         });
-        router.push("/");
+        router.push("/feed");
       } catch (error) {
         console.error("Error saving profile:", error);
       } finally {

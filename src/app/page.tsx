@@ -1,320 +1,156 @@
 "use client";
 
-import { useState } from "react";
-import { Layout } from "@/components/Layout";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Heart, MessageCircle, Share2, Play, Search, Bookmark } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 import { useRouter } from "next/navigation";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { CommentsOverlay } from "@/components/CommentsOverlay";
+import { useEffect } from "react";
+import { Loader2 } from "lucide-react";
+import Link from "next/link";
 
-interface Comment {
-  id: string;
-  user: {
-    id: string;
-    name: string;
-    username: string;
-    avatar_url?: string;
-  };
-  content: string;
-  created_at: string;
-  likes: number;
-  isLiked?: boolean;
-  replies?: Comment[];
-}
-
-interface Post {
-  id: string;
-  user: {
-    name: string;
-    username: string;
-    avatar_url?: string;
-    isPrivate?: boolean;
-  };
-  piece: string;
-  composer: string;
-  time: string;
-  likes: number;
-  isLiked: boolean;
-  comments: Comment[];
-  isSaved: boolean;
-}
-
-const initialPosts: Post[] = [
-  {
-    id: "1",
-    user: { name: "John Smith", username: "johnsmith" },
-    piece: "Moonlight Sonata",
-    composer: "Beethoven",
-    time: "2h ago",
-    likes: 89,
-    isLiked: false,
-    isSaved: false,
-    comments: [
-      {
-        id: "c1",
-        user: { id: "u1", name: "Sarah Chen", username: "sarahchen", avatar_url: "" },
-        content: "Beautiful interpretation! The dynamics were perfect 🎹",
-        created_at: new Date(Date.now() - 3600000).toISOString(),
-        likes: 12,
-        isLiked: false,
-        replies: [
-          {
-            id: "c1r1",
-            user: { id: "u2", name: "John Smith", username: "johnsmith", avatar_url: "" },
-            content: "Thank you so much! Been practicing this for months 😊",
-            created_at: new Date(Date.now() - 1800000).toISOString(),
-            likes: 5,
-          }
-        ],
-      },
-      {
-        id: "c2",
-        user: { id: "u3", name: "Emma Wilson", username: "emmawilson", avatar_url: "" },
-        content: "The third movement was incredible. What tempo do you practice at?",
-        created_at: new Date(Date.now() - 7200000).toISOString(),
-        likes: 8,
-      },
-    ],
-  },
-  {
-    id: "2",
-    user: { name: "Emma Wilson", username: "emmawilson" },
-    piece: "La Campanella",
-    composer: "Liszt",
-    time: "5h ago",
-    likes: 156,
-    isLiked: true,
-    isSaved: false,
-    comments: [
-      {
-        id: "c3",
-        user: { id: "u4", name: "Michael Brown", username: "michaelb", avatar_url: "" },
-        content: "Those octave runs are insane! How long have you been playing?",
-        created_at: new Date(Date.now() - 18000000).toISOString(),
-        likes: 23,
-      },
-    ],
-  },
-  {
-    id: "3",
-    user: { name: "Sarah Chen", username: "sarahchen", isPrivate: true },
-    piece: "Clair de Lune",
-    composer: "Debussy",
-    time: "1d ago",
-    likes: 234,
-    isLiked: false,
-    isSaved: true,
-    comments: [],
-  },
-];
-
-export default function Home() {
+export default function LandingPage() {
+  const { user, isLoading } = useAuth();
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<"for-you" | "following">("for-you");
-  const [posts, setPosts] = useState<Post[]>(initialPosts);
-  const [activeComments, setActiveComments] = useState<string | null>(null);
 
-  const handleLike = (postId: string) => {
-    setPosts(posts.map(p => {
-      if (p.id !== postId) return p;
-      return {
-        ...p,
-        isLiked: !p.isLiked,
-        likes: p.isLiked ? p.likes - 1 : p.likes + 1,
-      };
-    }));
-  };
+  // If logged in, redirect to feed
+  useEffect(() => {
+    if (user && !isLoading) {
+      router.push("/feed");
+    }
+  }, [user, isLoading, router]);
 
-  const handleSave = (postId: string) => {
-    setPosts(posts.map(p => {
-      if (p.id !== postId) return p;
-      return { ...p, isSaved: !p.isSaved };
-    }));
-  };
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-black/30" />
+      </div>
+    );
+  }
 
-  const handleAddComment = (postId: string, content: string, replyToId?: string) => {
-    setPosts(posts.map(p => {
-      if (p.id !== postId) return p;
-      
-      const newComment: Comment = {
-        id: Date.now().toString(),
-        user: { id: "me", name: "You", username: "me", avatar_url: "" },
-        content,
-        created_at: new Date().toISOString(),
-        likes: 0,
-      };
-
-      if (replyToId) {
-        return {
-          ...p,
-          comments: p.comments.map(c => {
-            if (c.id !== replyToId) return c;
-            return { ...c, replies: [...(c.replies || []), newComment] };
-          }),
-        };
-      }
-
-      return { ...p, comments: [newComment, ...p.comments] };
-    }));
-  };
-
-  const handleLikeComment = (postId: string, commentId: string) => {
-    setPosts(posts.map(p => {
-      if (p.id !== postId) return p;
-      return {
-        ...p,
-        comments: p.comments.map(c => {
-          if (c.id === commentId) {
-            return { ...c, isLiked: !c.isLiked, likes: c.isLiked ? c.likes - 1 : c.likes + 1 };
-          }
-          if (c.replies) {
-            return {
-              ...c,
-              replies: c.replies.map(r => 
-                r.id === commentId 
-                  ? { ...r, isLiked: !r.isLiked, likes: r.isLiked ? r.likes - 1 : r.likes + 1 }
-                  : r
-              ),
-            };
-          }
-          return c;
-        }),
-      };
-    }));
-  };
-
-  const activePost = posts.find(p => p.id === activeComments);
+  // If logged in, show nothing while redirecting
+  if (user) {
+    return null;
+  }
 
   return (
-    <Layout streak={7}>
-      <div className="max-w-2xl mx-auto px-4 py-6">
-        <div className="mb-6">
-          <div className="relative mb-6">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-            <Input
-              placeholder="Search composers, users, pieces..."
-              className="pl-10 bg-muted/50 border-0"
-              onFocus={() => router.push("/explore")}
-            />
-          </div>
+    <div className="min-h-screen bg-white text-black">
+      {/* Header */}
+      <header className="w-full py-6 px-6 flex justify-center">
+        <h1 
+          className="text-3xl font-bold tracking-tight"
+          style={{ fontFamily: 'Times New Roman, Georgia, serif' }}
+        >
+          PRONIA
+        </h1>
+      </header>
 
-          <div className="flex items-center justify-center gap-8 border-b border-border">
-            <button
-              className={`pb-3 px-1 text-sm font-medium transition-colors ${
-                activeTab === "for-you"
-                  ? "text-foreground border-b-2 border-foreground"
-                  : "text-muted-foreground"
-              }`}
-              onClick={() => setActiveTab("for-you")}
+      {/* Main Content */}
+      <main className="flex flex-col items-center justify-center px-6 py-20">
+        {/* Hero Section */}
+        <div className="max-w-2xl text-center mb-16">
+          <h2 className="text-4xl md:text-5xl font-bold mb-6 leading-tight">
+            Track Your Musical Journey
+          </h2>
+          <p className="text-lg md:text-xl text-gray-600 mb-12 max-w-lg mx-auto">
+            Practice smarter, connect with musicians, and watch your skills grow.
+          </p>
+
+          {/* CTA Buttons */}
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Link
+              href="/login"
+              className="px-8 py-4 bg-black text-white font-semibold rounded-lg hover:bg-gray-900 transition-colors text-center min-w-[160px]"
             >
-              For You
-            </button>
-            <button
-              className={`pb-3 px-1 text-sm font-medium transition-colors ${
-                activeTab === "following"
-                  ? "text-foreground border-b-2 border-foreground"
-                  : "text-muted-foreground"
-              }`}
-              onClick={() => setActiveTab("following")}
+              LOG IN
+            </Link>
+            <Link
+              href="/onboarding"
+              className="px-8 py-4 bg-white text-black font-semibold rounded-lg border-2 border-black hover:bg-gray-50 transition-colors text-center min-w-[160px]"
             >
-              Following
-            </button>
+              SIGN UP
+            </Link>
           </div>
         </div>
-        
-        <div className="space-y-4">
-          {posts.map((post) => (
-            <Card key={post.id} className="overflow-hidden">
-              <div className="p-3 pb-2">
-                <div className="flex items-center gap-2 mb-2">
-                  <Avatar 
-                    className="h-8 w-8 cursor-pointer"
-                    onClick={() => router.push(`/user/${post.user.username}`)}
-                  >
-                    <AvatarImage src={post.user.avatar_url} />
-                    <AvatarFallback className="bg-muted text-xs">
-                      {post.user.name.charAt(0)}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm">
-                      <span 
-                        className="font-semibold cursor-pointer hover:underline"
-                        onClick={() => router.push(`/user/${post.user.username}`)}
-                      >
-                        {post.user.name}
-                      </span>{" "}
-                      <span className="text-muted-foreground">@{post.user.username}</span>
-                    </p>
-                    <p className="text-xs text-muted-foreground">{post.time}</p>
-                  </div>
-                </div>
-              </div>
 
-              <div className="aspect-square bg-muted relative group cursor-pointer">
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="h-16 w-16 rounded-xl bg-black/80 flex items-center justify-center">
-                    <Play className="h-8 w-8 text-white fill-white" />
-                  </div>
-                </div>
-              </div>
-              
-              <div className="p-3">
-                <div className="mb-2">
-                  <p className="font-semibold text-sm">{post.piece}</p>
-                  <p className="text-xs text-muted-foreground">{post.composer}</p>
-                </div>
-                
-                <div className="flex items-center gap-1">
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    className="gap-1.5 h-8 px-2"
-                    onClick={() => handleLike(post.id)}
-                  >
-                    <Heart className={`h-4 w-4 ${post.isLiked ? "fill-red-500 text-red-500" : ""}`} />
-                    <span className="text-xs">{post.likes}</span>
-                  </Button>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    className="gap-1.5 h-8 px-2"
-                    onClick={() => setActiveComments(post.id)}
-                  >
-                    <MessageCircle className="h-4 w-4" />
-                    <span className="text-xs">{post.comments.length}</span>
-                  </Button>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    className="h-8 px-2"
-                    onClick={() => handleSave(post.id)}
-                  >
-                    <Bookmark className={`h-4 w-4 ${post.isSaved ? "fill-current" : ""}`} />
-                  </Button>
-                  <Button variant="ghost" size="sm" className="h-8 px-2 ml-auto">
-                    <Share2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            </Card>
-          ))}
+        {/* Features Preview */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl w-full mb-20">
+          <div className="text-center p-6">
+            <div className="w-12 h-12 bg-black rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <h3 className="font-semibold text-lg mb-2">Track Practice</h3>
+            <p className="text-gray-600 text-sm">Log your sessions and see your progress over time.</p>
+          </div>
+          <div className="text-center p-6">
+            <div className="w-12 h-12 bg-black rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+            </div>
+            <h3 className="font-semibold text-lg mb-2">Connect</h3>
+            <p className="text-gray-600 text-sm">Follow musicians and share your musical journey.</p>
+          </div>
+          <div className="text-center p-6">
+            <div className="w-12 h-12 bg-black rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
+              </svg>
+            </div>
+            <h3 className="font-semibold text-lg mb-2">Build Library</h3>
+            <p className="text-gray-600 text-sm">Organize your repertoire and master new pieces.</p>
+          </div>
         </div>
-      </div>
 
-      {activePost && (
-        <CommentsOverlay
-          isOpen={!!activeComments}
-          onClose={() => setActiveComments(null)}
-          postId={activePost.id}
-          comments={activePost.comments}
-          onAddComment={(content, replyToId) => handleAddComment(activePost.id, content, replyToId)}
-          onLikeComment={(commentId) => handleLikeComment(activePost.id, commentId)}
-        />
-      )}
-    </Layout>
+        {/* Testimonials Section - Placeholder */}
+        <section className="w-full max-w-4xl">
+          <h3 className="text-center text-sm font-semibold text-gray-400 uppercase tracking-wider mb-8">
+            What Musicians Are Saying
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Testimonial Placeholder 1 */}
+            <div className="border border-gray-200 rounded-xl p-6 bg-gray-50">
+              <p className="text-gray-600 italic mb-4">
+                &ldquo;Add your testimonial here...&rdquo;
+              </p>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-gray-300 rounded-full" />
+                <div>
+                  <p className="font-semibold text-sm">Name</p>
+                  <p className="text-xs text-gray-500">Instrument</p>
+                </div>
+              </div>
+            </div>
+            {/* Testimonial Placeholder 2 */}
+            <div className="border border-gray-200 rounded-xl p-6 bg-gray-50">
+              <p className="text-gray-600 italic mb-4">
+                &ldquo;Add your testimonial here...&rdquo;
+              </p>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-gray-300 rounded-full" />
+                <div>
+                  <p className="font-semibold text-sm">Name</p>
+                  <p className="text-xs text-gray-500">Instrument</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      {/* Footer */}
+      <footer className="py-8 px-6 border-t border-gray-100">
+        <div className="max-w-4xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+          <p 
+            className="text-lg font-bold"
+            style={{ fontFamily: 'Times New Roman, Georgia, serif' }}
+          >
+            PRONIA
+          </p>
+          <p className="text-sm text-gray-500">
+            © 2024 Pronia. All rights reserved.
+          </p>
+        </div>
+      </footer>
+    </div>
   );
 }

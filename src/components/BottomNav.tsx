@@ -4,7 +4,7 @@ import { Home, Music2, PlayCircle, LayoutDashboard, User } from "lucide-react";
 import { NavLink } from "./NavLink";
 
 const navItems = [
-  { icon: Home, label: "Home", path: "/" },
+  { icon: Home, label: "Home", path: "/feed" },
   { icon: Music2, label: "Library", path: "/library" },
   { icon: PlayCircle, label: "Record", path: "/record" },
   { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },

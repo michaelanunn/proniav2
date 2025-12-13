@@ -12,7 +12,7 @@ export default function Login() {
 
   useEffect(() => {
     if (user && !isLoading) {
-      router.push("/");
+      router.push("/feed");
     }
   }, [user, isLoading, router]);
 
