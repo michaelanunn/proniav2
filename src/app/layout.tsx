@@ -10,7 +10,12 @@ export const metadata: Metadata = {
   title: "Pronia - Practice Music",
   description: "Track your music practice and connect with other musicians",
   icons: {
-    icon: "/favicon.ico",
+    icon: [
+      { url: "/favicon.ico" },
+      { url: "/favicon-32x32.png", sizes: "32x32" },
+      { url: "/favicon-16x16.png", sizes: "16x16" },
+    ],
+    shortcut: "/favicon.ico",
   },
 };
 
