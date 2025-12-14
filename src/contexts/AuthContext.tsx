@@ -1,11 +1,18 @@
 "use client";
 
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
-import { User, Session } from "@supabase/supabase-js";
-import { useRouter } from "next/navigation";
 
-interface UserProfile {
+interface User {
+  id: string;
+  email: string;
+  user_metadata?: {
+    name?: string;
+    username?: string;
+    avatar_url?: string;
+  };
+}
+
+interface Profile {
   id: string;
   email: string;
   name: string;
@@ -14,180 +21,179 @@ interface UserProfile {
   avatar_url: string | null;
   instruments: string[];
   experience_level: string;
-  created_at: string;
   followers_count: number;
   following_count: number;
   is_premium: boolean;
-  trial_start_date: string | null;
 }
 
 interface AuthContextType {
   user: User | null;
-  profile: UserProfile | null;
-  session: Session | null;
+  profile: Profile | null;
   isLoading: boolean;
   signInWithGoogle: () => Promise<void>;
+  signInWithEmail: (email: string, password: string) => Promise<void>;
+  signUpWithEmail: (email: string, password: string, name: string) => Promise<void>;
   signOut: () => Promise<void>;
-  updateProfile: (data: Partial<UserProfile>) => Promise<void>;
+  updateProfile: (data: Partial<Profile>) => Promise<void>;
   refreshProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const supabase = createClientComponentClient();
-  const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
-  const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Fetch user profile from database
-  const fetchProfile = async (userId: string) => {
-    const { data, error } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("id", userId)
-      .single();
-
-    if (error && error.code !== "PGRST116") {
-      console.error("Error fetching profile:", error);
-      return null;
-    }
-
-    return data as UserProfile | null;
-  };
-
-  // Create initial profile for new users
-  const createProfile = async (user: User) => {
-    const username = user.email?.split("@")[0] || `user_${user.id.slice(0, 8)}`;
-    const name = user.user_metadata?.full_name || user.user_metadata?.name || username;
-    
-    const newProfile = {
-      id: user.id,
-      email: user.email || "",
-      name,
-      username,
-      bio: "",
-      avatar_url: user.user_metadata?.avatar_url || null,
-      instruments: [],
-      experience_level: "",
-      followers_count: 0,
-      following_count: 0,
-      is_premium: false,
-      trial_start_date: null,
-    };
-
-    const { data, error } = await supabase
-      .from("profiles")
-      .upsert(newProfile)
-      .select()
-      .single();
-
-    if (error) {
-      console.error("Error creating profile:", error);
-      return null;
-    }
-
-    return data as UserProfile;
-  };
-
-  // Initialize auth state
+  // Load user from localStorage on mount
   useEffect(() => {
-    const initAuth = async () => {
+    const loadUser = () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const savedUser = localStorage.getItem("pronia-user");
+        const savedProfile = localStorage.getItem("pronia-profile");
         
-        if (session?.user) {
-          setSession(session);
-          setUser(session.user);
-          
-          let profile = await fetchProfile(session.user.id);
-          if (!profile) {
-            profile = await createProfile(session.user);
-          }
-          setProfile(profile);
+        if (savedUser) {
+          setUser(JSON.parse(savedUser));
+        }
+        if (savedProfile) {
+          setProfile(JSON.parse(savedProfile));
         }
       } catch (error) {
-        console.error("Auth initialization error:", error);
+        console.error("Error loading user:", error);
       } finally {
         setIsLoading(false);
       }
     };
 
-    initAuth();
-
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        setSession(session);
-        setUser(session?.user || null);
-
-        if (session?.user) {
-          let profile = await fetchProfile(session.user.id);
-          if (!profile) {
-            profile = await createProfile(session.user);
-          }
-          setProfile(profile);
-
-          // Redirect new users to onboarding
-          if (event === "SIGNED_IN" && !profile?.instruments?.length) {
-            router.push("/onboarding");
-          }
-        } else {
-          setProfile(null);
-        }
-      }
-    );
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, [supabase, router]);
+    loadUser();
+  }, []);
 
   const signInWithGoogle = async () => {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
-      },
-    });
+    // For now, just show an alert - Google OAuth requires Supabase setup
+    alert("Google sign-in requires Supabase configuration. Use email/password for now.");
+  };
 
-    if (error) {
-      console.error("Google sign in error:", error);
-      throw error;
+  const signInWithEmail = async (email: string, password: string) => {
+    // Simple local auth - check if user exists in localStorage
+    const users = JSON.parse(localStorage.getItem("pronia-users") || "{}");
+    const userData = users[email];
+    
+    if (!userData) {
+      throw new Error("No account found with this email. Please sign up first.");
     }
+    
+    if (userData.password !== password) {
+      throw new Error("Incorrect password.");
+    }
+
+    const user: User = {
+      id: userData.id,
+      email: email,
+      user_metadata: {
+        name: userData.name,
+        username: userData.username,
+      },
+    };
+
+    const profile: Profile = {
+      id: userData.id,
+      email: email,
+      name: userData.name || "",
+      username: userData.username || email.split("@")[0],
+      bio: userData.bio || "",
+      avatar_url: userData.avatar_url || null,
+      instruments: userData.instruments || [],
+      experience_level: userData.experience_level || "",
+      followers_count: 0,
+      following_count: 0,
+      is_premium: false,
+    };
+
+    setUser(user);
+    setProfile(profile);
+    localStorage.setItem("pronia-user", JSON.stringify(user));
+    localStorage.setItem("pronia-profile", JSON.stringify(profile));
+  };
+
+  const signUpWithEmail = async (email: string, password: string, name: string) => {
+    // Simple local auth - store user in localStorage
+    const users = JSON.parse(localStorage.getItem("pronia-users") || "{}");
+    
+    if (users[email]) {
+      throw new Error("An account with this email already exists. Please log in.");
+    }
+
+    const id = `user_${Date.now()}`;
+    const username = email.split("@")[0].toLowerCase().replace(/[^a-z0-9]/g, "") + "_" + id.slice(-4);
+
+    users[email] = {
+      id,
+      email,
+      password,
+      name,
+      username,
+      bio: "",
+      avatar_url: null,
+      instruments: [],
+      experience_level: "",
+      created_at: new Date().toISOString(),
+    };
+
+    localStorage.setItem("pronia-users", JSON.stringify(users));
+
+    const user: User = {
+      id,
+      email,
+      user_metadata: { name, username },
+    };
+
+    const profile: Profile = {
+      id,
+      email,
+      name,
+      username,
+      bio: "",
+      avatar_url: null,
+      instruments: [],
+      experience_level: "",
+      followers_count: 0,
+      following_count: 0,
+      is_premium: false,
+    };
+
+    setUser(user);
+    setProfile(profile);
+    localStorage.setItem("pronia-user", JSON.stringify(user));
+    localStorage.setItem("pronia-profile", JSON.stringify(profile));
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
     setUser(null);
     setProfile(null);
-    setSession(null);
-    router.push("/");
+    localStorage.removeItem("pronia-user");
+    localStorage.removeItem("pronia-profile");
   };
 
-  const updateProfile = async (data: Partial<UserProfile>) => {
-    if (!user) return;
+  const updateProfile = async (data: Partial<Profile>) => {
+    if (!user || !profile) return;
 
-    const { error } = await supabase
-      .from("profiles")
-      .update(data)
-      .eq("id", user.id);
+    const updatedProfile = { ...profile, ...data };
+    setProfile(updatedProfile);
+    localStorage.setItem("pronia-profile", JSON.stringify(updatedProfile));
 
-    if (error) {
-      console.error("Error updating profile:", error);
-      throw error;
+    // Also update in users storage
+    const users = JSON.parse(localStorage.getItem("pronia-users") || "{}");
+    if (users[user.email]) {
+      users[user.email] = { ...users[user.email], ...data };
+      localStorage.setItem("pronia-users", JSON.stringify(users));
     }
-
-    // Refresh profile data
-    await refreshProfile();
   };
 
   const refreshProfile = async () => {
-    if (!user) return;
-    const profile = await fetchProfile(user.id);
-    setProfile(profile);
+    const savedProfile = localStorage.getItem("pronia-profile");
+    if (savedProfile) {
+      setProfile(JSON.parse(savedProfile));
+    }
   };
 
   return (
@@ -195,9 +201,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       value={{
         user,
         profile,
-        session,
         isLoading,
         signInWithGoogle,
+        signInWithEmail,
+        signUpWithEmail,
         signOut,
         updateProfile,
         refreshProfile,
@@ -210,9 +217,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error("useAuth must be used within an AuthProvider");
+  if (!context) {
+    throw new Error("useAuth must be used within AuthProvider");
   }
   return context;
 };
-
