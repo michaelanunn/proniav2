@@ -5,17 +5,84 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useRouter } from "next/navigation";
-import { Piano, Guitar, Mic, User, Loader2, Eye, EyeOff } from "lucide-react";
+import { User, Loader2, Eye, EyeOff } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import Link from "next/link";
 
+// Custom SVG icons for instruments
+const PianoIcon = () => (
+  <svg className="h-8 w-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+    <rect x="2" y="6" width="20" height="12" rx="1" />
+    <path d="M6 6v7M10 6v7M14 6v7M18 6v7" />
+    <rect x="4.5" y="6" width="2" height="4.5" fill="currentColor" rx="0.5" />
+    <rect x="8.5" y="6" width="2" height="4.5" fill="currentColor" rx="0.5" />
+    <rect x="13.5" y="6" width="2" height="4.5" fill="currentColor" rx="0.5" />
+    <rect x="17.5" y="6" width="2" height="4.5" fill="currentColor" rx="0.5" />
+  </svg>
+);
+
+const GuitarIcon = () => (
+  <svg className="h-8 w-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+    <path d="M19 3l2 2-6 6-2-2 6-6z" />
+    <path d="M13 9l-1 1" />
+    <ellipse cx="9" cy="15" rx="5" ry="6" />
+    <circle cx="9" cy="15" r="1.5" />
+    <path d="M9 11v-1M9 20v1" />
+  </svg>
+);
+
+const ViolinIcon = () => (
+  <svg className="h-8 w-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+    <path d="M12 2v3M10 5h4" />
+    <ellipse cx="12" cy="10" rx="3" ry="2" />
+    <ellipse cx="12" cy="17" rx="5" ry="4" />
+    <path d="M12 8v12" />
+    <circle cx="10" cy="16" r="0.5" fill="currentColor" />
+    <circle cx="14" cy="16" r="0.5" fill="currentColor" />
+    <path d="M7 14c-1 0-2 1-2 2s1 2 2 2" />
+    <path d="M17 14c1 0 2 1 2 2s-1 2-2 2" />
+  </svg>
+);
+
+const DrumsIcon = () => (
+  <svg className="h-8 w-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+    <ellipse cx="12" cy="8" rx="9" ry="3" />
+    <path d="M3 8v7c0 1.7 4 3 9 3s9-1.3 9-3V8" />
+    <path d="M3 12c0 1.7 4 3 9 3s9-1.3 9-3" />
+    <path d="M1 4l5 5M23 4l-5 5" />
+    <circle cx="3" cy="3" r="1.5" fill="currentColor" />
+    <circle cx="21" cy="3" r="1.5" fill="currentColor" />
+  </svg>
+);
+
+const BassIcon = () => (
+  <svg className="h-8 w-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+    <path d="M12 2v4M10 4h4" />
+    <rect x="10" y="6" width="4" height="3" rx="1" />
+    <ellipse cx="12" cy="16" rx="6" ry="5" />
+    <path d="M12 11v10" />
+    <circle cx="10" cy="15" r="0.5" fill="currentColor" />
+    <circle cx="14" cy="15" r="0.5" fill="currentColor" />
+    <circle cx="10" cy="17" r="0.5" fill="currentColor" />
+    <circle cx="14" cy="17" r="0.5" fill="currentColor" />
+  </svg>
+);
+
+const VocalsIcon = () => (
+  <svg className="h-8 w-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+    <rect x="9" y="2" width="6" height="10" rx="3" />
+    <path d="M5 10v1a7 7 0 0014 0v-1" />
+    <path d="M12 18v4M8 22h8" />
+  </svg>
+);
+
 const instruments = [
-  { id: "piano", name: "Piano", icon: Piano },
-  { id: "guitar", name: "Guitar", icon: Guitar },
-  { id: "violin", name: "Violin", icon: Mic },
-  { id: "drums", name: "Drums", icon: Mic },
-  { id: "bass", name: "Bass", icon: Guitar },
-  { id: "vocals", name: "Vocals", icon: Mic },
+  { id: "piano", name: "Piano", Icon: PianoIcon },
+  { id: "guitar", name: "Guitar", Icon: GuitarIcon },
+  { id: "violin", name: "Violin", Icon: ViolinIcon },
+  { id: "drums", name: "Drums", Icon: DrumsIcon },
+  { id: "bass", name: "Bass", Icon: BassIcon },
+  { id: "vocals", name: "Vocals", Icon: VocalsIcon },
 ];
 
 const popularPieces = [
@@ -312,7 +379,7 @@ export default function Onboarding() {
               
               <div className="grid grid-cols-3 gap-3">
                 {instruments.map((instrument) => {
-                  const Icon = instrument.icon;
+                  const Icon = instrument.Icon;
                   const isSelected = selectedInstruments.includes(instrument.id);
                   return (
                     <button
@@ -324,7 +391,7 @@ export default function Onboarding() {
                           : "border-gray-200 hover:border-gray-400"
                       }`}
                     >
-                      <Icon className="h-8 w-8" />
+                      <Icon />
                       <span className="text-xs font-medium">{instrument.name}</span>
                     </button>
                   );
