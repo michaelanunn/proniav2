@@ -3,17 +3,30 @@
 import { Layout } from "@/components/Layout";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Music, Lock, Loader2, ExternalLink, Crown } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Music, Lock, Loader2, ExternalLink, Crown, Plus, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { usePractice } from "@/contexts/PracticeContext";
 import { useSpotify } from "@/contexts/SpotifyContext";
 import { usePremium } from "@/contexts/PremiumContext";
+import { useState, useEffect } from "react";
+
+interface MasteringPiece {
+  id: string;
+  title: string;
+  composer: string;
+}
 
 export default function Dashboard() {
   const router = useRouter();
   const { sessions, getWeeklyPracticeTime, getWeeklyPracticeByDay } = usePractice();
-  const { isConnected, isLoading, recentTracks, connect, disconnect } = useSpotify();
+  const { isConnected, isLoading: spotifyLoading, recentTracks, connect, disconnect } = useSpotify();
   const { isPremium, isTrialActive, openPaywall } = usePremium();
+  
+  const [masteringPieces, setMasteringPieces] = useState<MasteringPiece[]>([]);
+  const [isAddingPiece, setIsAddingPiece] = useState(false);
+  const [newPieceTitle, setNewPieceTitle] = useState("");
+  const [newPieceComposer, setNewPieceComposer] = useState("");
   
   const hasPremiumAccess = isPremium || isTrialActive;
   const weeklyPractice = getWeeklyPracticeByDay();
@@ -23,17 +36,44 @@ export default function Dashboard() {
   // Calculate streak from sessions
   const streak = sessions.length > 0 ? Math.min(sessions.length, 7) : 0;
 
-  // Get library pieces from localStorage
-  const pieces = typeof window !== 'undefined' 
-    ? JSON.parse(localStorage.getItem("library-pieces") || "[]") 
-    : [];
-  const masteredCount = pieces.filter((p: { progress: number }) => p.progress >= 100).length;
+  // Load mastering pieces from localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem("dashboard-mastering");
+    if (saved) {
+      setMasteringPieces(JSON.parse(saved));
+    }
+  }, []);
+
+  // Save mastering pieces to localStorage
+  useEffect(() => {
+    localStorage.setItem("dashboard-mastering", JSON.stringify(masteringPieces));
+  }, [masteringPieces]);
   
   const formatHours = (hours: number) => {
     if (hours >= 1) {
       return `${hours.toFixed(1)}h`;
     }
     return `${Math.round(hours * 60)}m`;
+  };
+
+  const handleAddPiece = () => {
+    if (!newPieceTitle.trim()) return;
+    if (masteringPieces.length >= 3) return;
+    
+    const newPiece: MasteringPiece = {
+      id: Date.now().toString(),
+      title: newPieceTitle,
+      composer: newPieceComposer,
+    };
+    
+    setMasteringPieces([...masteringPieces, newPiece]);
+    setNewPieceTitle("");
+    setNewPieceComposer("");
+    setIsAddingPiece(false);
+  };
+
+  const handleRemovePiece = (id: string) => {
+    setMasteringPieces(masteringPieces.filter(p => p.id !== id));
   };
 
   return (
@@ -43,7 +83,7 @@ export default function Dashboard() {
 
         <Button 
           size="lg" 
-          className="w-full mb-6 bg-black text-white hover:bg-gray-800"
+          className="w-full mb-6 bg-black text-white hover:bg-gray-800 h-12 font-semibold"
           onClick={() => router.push("/record")}
         >
           Start Practicing
@@ -52,7 +92,7 @@ export default function Dashboard() {
         <div className="grid grid-cols-3 gap-4 mb-6">
           <Card className="p-4 bg-white border-gray-200">
             <div className="flex items-center gap-2 mb-2">
-              <span className="text-sm font-medium text-gray-700">Practice Time</span>
+              <span className="text-sm font-medium text-gray-600">Practice Time</span>
             </div>
             <p className="text-3xl font-bold text-black">{formatHours(weeklyPracticeHours)}</p>
             <p className="text-xs text-gray-500">This week</p>
@@ -60,18 +100,18 @@ export default function Dashboard() {
 
           <Card className="p-4 bg-white border-gray-200">
             <div className="flex items-center gap-2 mb-2">
-              <span className="text-sm font-medium text-gray-700">Pieces Mastered</span>
+              <span className="text-sm font-medium text-gray-600">Sessions</span>
             </div>
-            <p className="text-3xl font-bold text-black">{masteredCount}</p>
+            <p className="text-3xl font-bold text-black">{sessions.length}</p>
             <p className="text-xs text-gray-500">Total</p>
           </Card>
 
           <Card className="p-4 bg-white border-gray-200">
             <div className="flex items-center gap-2 mb-2">
-              <span className="text-sm font-medium text-gray-700">Practice Songs</span>
+              <span className="text-sm font-medium text-gray-600">Streak</span>
             </div>
-            <p className="text-3xl font-bold text-black">{pieces.length}</p>
-            <p className="text-xs text-gray-500">In library</p>
+            <p className="text-3xl font-bold text-black">{streak}</p>
+            <p className="text-xs text-gray-500">Days</p>
           </Card>
         </div>
 
@@ -89,37 +129,98 @@ export default function Dashboard() {
           </div>
         </Card>
 
+        {/* Currently Mastering - Max 3 pieces, user adds them */}
         <Card className="p-6 mb-6 bg-white border-gray-200">
-          <h2 className="text-lg font-semibold mb-4 text-black">Currently Mastering</h2>
-          {pieces.length === 0 ? (
-            <div className="text-center py-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-black">Currently Mastering</h2>
+            {masteringPieces.length < 3 && !isAddingPiece && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsAddingPiece(true)}
+                className="text-gray-600 hover:text-black"
+              >
+                <Plus className="h-4 w-4 mr-1" />
+                Add
+              </Button>
+            )}
+          </div>
+
+          {masteringPieces.length === 0 && !isAddingPiece ? (
+            <div className="text-center py-8">
               <Music className="h-10 w-10 mx-auto mb-2 text-gray-300" />
-              <p className="text-sm text-gray-500">No pieces in your library yet</p>
+              <p className="text-sm text-gray-500">No pieces yet</p>
               <Button 
                 variant="link" 
-                onClick={() => router.push("/library")}
+                onClick={() => setIsAddingPiece(true)}
                 className="mt-2 text-black"
               >
-                Add some pieces →
+                Add your first piece →
               </Button>
             </div>
           ) : (
             <div className="space-y-3">
-              {pieces.slice(0, 3).map((song: { id: string; title: string; artist: string; progress: number }) => (
-                <div key={song.id} className="flex items-center gap-4">
+              {masteringPieces.map((piece) => (
+                <div key={piece.id} className="flex items-center gap-4 group">
                   <div className="h-12 w-12 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0">
                     <Music className="h-5 w-5 text-gray-500" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold truncate text-black">{song.title}</h3>
-                    <p className="text-sm text-gray-500">{song.artist}</p>
+                    <h3 className="font-semibold truncate text-black">{piece.title}</h3>
+                    {piece.composer && (
+                      <p className="text-sm text-gray-500">{piece.composer}</p>
+                    )}
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium text-black">{song.progress}%</span>
-                  </div>
+                  <button
+                    onClick={() => handleRemovePiece(piece.id)}
+                    className="p-2 opacity-0 group-hover:opacity-100 hover:bg-red-50 rounded-lg transition-all"
+                  >
+                    <X className="h-4 w-4 text-red-500" />
+                  </button>
                 </div>
               ))}
+
+              {isAddingPiece && (
+                <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                  <Input
+                    value={newPieceTitle}
+                    onChange={(e) => setNewPieceTitle(e.target.value)}
+                    placeholder="Piece title"
+                    className="mb-2 bg-white border-gray-200 text-black"
+                  />
+                  <Input
+                    value={newPieceComposer}
+                    onChange={(e) => setNewPieceComposer(e.target.value)}
+                    placeholder="Composer (optional)"
+                    className="mb-3 bg-white border-gray-200 text-black"
+                  />
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => { setIsAddingPiece(false); setNewPieceTitle(""); setNewPieceComposer(""); }}
+                      className="flex-1 border-gray-300"
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={handleAddPiece}
+                      className="flex-1 bg-black text-white hover:bg-gray-800"
+                      disabled={!newPieceTitle.trim()}
+                    >
+                      Add
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
+          )}
+
+          {masteringPieces.length > 0 && masteringPieces.length < 3 && !isAddingPiece && (
+            <p className="text-xs text-gray-400 mt-3 text-center">
+              {3 - masteringPieces.length} more slot{3 - masteringPieces.length > 1 ? 's' : ''} available
+            </p>
           )}
         </Card>
 
@@ -153,7 +254,7 @@ export default function Dashboard() {
                 Unlock
               </Button>
             ) : isConnected ? (
-              <Button variant="outline" size="sm" onClick={disconnect} className="border-gray-300">
+              <Button variant="outline" size="sm" onClick={disconnect} className="border-gray-300 text-black">
                 Disconnect
               </Button>
             ) : (
@@ -161,9 +262,9 @@ export default function Dashboard() {
                 size="sm" 
                 className="bg-[#1DB954] hover:bg-[#1aa34a] text-white"
                 onClick={connect}
-                disabled={isLoading}
+                disabled={spotifyLoading}
               >
-                {isLoading ? (
+                {spotifyLoading ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
                   "Connect"
@@ -174,7 +275,7 @@ export default function Dashboard() {
 
           {!hasPremiumAccess ? (
             <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-              <p className="text-sm text-gray-700">
+              <p className="text-sm text-gray-600">
                 Connect your Spotify account to import your listening history and discover new classical pieces to learn.
               </p>
               <Button 
@@ -187,7 +288,7 @@ export default function Dashboard() {
             </div>
           ) : isConnected ? (
             <div className="space-y-3">
-              {isLoading ? (
+              {spotifyLoading ? (
                 <div className="flex items-center justify-center py-8">
                   <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
                 </div>
