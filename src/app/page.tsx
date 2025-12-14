@@ -26,12 +26,7 @@ export default function LandingPage() {
     <div className="min-h-screen bg-white text-black">
       {/* Header */}
       <header className="w-full py-6 px-6 flex justify-center">
-        <h1 
-          className="text-3xl font-bold tracking-tight"
-          style={{ fontFamily: 'Times New Roman, Georgia, serif' }}
-        >
-          PRONIA
-        </h1>
+        <BrandMark href="/" className="h-10" />
       </header>
 
       {/* Main Content */}
