@@ -47,9 +47,9 @@ export const ProfilePopup = ({ isOpen, onClose }: ProfilePopupProps) => {
         className="fixed inset-0 bg-black/50 z-50 animate-in fade-in"
         onClick={onClose}
       />
-      <div className="fixed right-0 top-0 bottom-0 w-full max-w-sm bg-card z-50 shadow-2xl animate-in slide-in-from-right">
+      <div className="fixed right-0 top-0 bottom-0 w-full max-w-sm bg-white z-50 shadow-2xl animate-in slide-in-from-right">
         <div className="flex flex-col h-full">
-          <div className="p-6 border-b border-border">
+          <div className="p-6 border-b border-gray-200">
             <Button
               variant="ghost"
               size="icon"
@@ -60,15 +60,15 @@ export const ProfilePopup = ({ isOpen, onClose }: ProfilePopupProps) => {
             </Button>
             
             <div className="flex flex-col items-center text-center mt-8">
-              <div className="h-24 w-24 rounded-full bg-muted flex items-center justify-center mb-4 overflow-hidden">
+              <div className="h-24 w-24 rounded-full bg-gray-100 flex items-center justify-center mb-4 overflow-hidden">
                 {avatarUrl ? (
                   <img src={avatarUrl} alt={displayName} className="h-full w-full object-cover" />
                 ) : (
                   <User className="h-12 w-12" />
                 )}
               </div>
-              <h2 className="text-xl font-bold">{displayName}</h2>
-              <p className="text-sm text-muted-foreground">@{displayUsername}</p>
+              <h2 className="text-xl font-bold text-black">{displayName}</h2>
+              <p className="text-sm text-gray-500">@{displayUsername}</p>
             </div>
           </div>
 
@@ -78,7 +78,7 @@ export const ProfilePopup = ({ isOpen, onClose }: ProfilePopupProps) => {
                 <button
                   key={item.path}
                   onClick={() => handleNavigation(item.path)}
-                  className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-secondary transition-colors text-left"
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-100 transition-colors text-left text-black"
                 >
                   <item.icon className="h-5 w-5" />
                   <span className="font-medium">{item.label}</span>
@@ -87,7 +87,7 @@ export const ProfilePopup = ({ isOpen, onClose }: ProfilePopupProps) => {
             </div>
           </div>
 
-          <div className="p-4 border-t border-border">
+          <div className="p-4 border-t border-gray-200">
             <Button
               variant="ghost"
               className="w-full justify-start gap-3 text-destructive hover:text-destructive"
