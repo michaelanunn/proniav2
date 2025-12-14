@@ -4,6 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import Link from "next/link";
+import { BrandMark } from "@/components/BrandMark";
 
 export default function LandingPage() {
   const { user, isLoading } = useAuth();
