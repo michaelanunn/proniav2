@@ -7,6 +7,7 @@ import { Switch } from "@/components/ui/switch";
 import { ChevronRight, Lock, Moon, Palette, Crown } from "lucide-react";
 import { useTheme, ThemeColor } from "@/contexts/ThemeContext";
 import { usePremium } from "@/contexts/PremiumContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { PaywallModal } from "@/components/PaywallModal";
 
 const themeColors: { id: ThemeColor; name: string; color: string; darkColor: string }[] = [
@@ -19,7 +20,8 @@ const themeColors: { id: ThemeColor; name: string; color: string; darkColor: str
 
 export default function Settings() {
   const { mode, color, setMode, setColor, canUseThemes } = useTheme();
-  const { isPremium, isTrialActive, startTrial } = usePremium();
+  const { isPremium, isTrialActive } = usePremium();
+  const { user, profile } = useAuth();
   const [isPrivate, setIsPrivate] = useState(false);
   const [pushNotifications, setPushNotifications] = useState(true);
   const [emailUpdates, setEmailUpdates] = useState(true);
@@ -43,8 +45,10 @@ export default function Settings() {
     setColor(newColor);
   };
 
+  const userEmail = profile?.email || user?.email || "Not set";
+
   return (
-    <Layout streak={7}>
+    <Layout streak={0}>
       <div className="max-w-2xl mx-auto px-4 py-6">
         <h1 className="text-2xl font-bold mb-6">Settings</h1>
 
@@ -65,10 +69,10 @@ export default function Settings() {
                   onCheckedChange={handlePrivateChange}
                 />
               </div>
-              <div className="p-4 flex items-center justify-between cursor-pointer hover:bg-muted/50 transition-colors">
+              <div className="p-4 flex items-center justify-between">
                 <span className="font-medium">Email</span>
                 <div className="flex items-center gap-2">
-                  <span className="text-sm text-muted-foreground">emma@example.com</span>
+                  <span className="text-sm text-muted-foreground">{userEmail}</span>
                   <ChevronRight className="h-5 w-5 text-muted-foreground" />
                 </div>
               </div>

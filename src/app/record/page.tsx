@@ -15,9 +15,10 @@ import {
   Video,
   VideoOff,
   Clock,
-  Pause
+  Pause,
+  AlertCircle
 } from "lucide-react";
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 
 export default function Record() {
   const { addSession, sessions } = usePractice();
@@ -29,9 +30,10 @@ export default function Record() {
   
   const [isAudioRecording, setIsAudioRecording] = useState(false);
   const [isVideoRecording, setIsVideoRecording] = useState(false);
-  const [permissionDenied, setPermissionDenied] = useState(false);
+  const [permissionStatus, setPermissionStatus] = useState<"prompt" | "granted" | "denied">("prompt");
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   
   const [showSaveForm, setShowSaveForm] = useState(false);
@@ -70,64 +72,91 @@ export default function Record() {
     };
   }, [isTimerRunning, isPaused]);
 
-  const startAudioRecording = async () => {
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+      }
+    };
+  }, []);
+
+  const requestPermissions = async (type: "audio" | "video") => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream);
-      mediaRecorderRef.current = mediaRecorder;
-      chunksRef.current = [];
-
-      mediaRecorder.ondataavailable = (event) => {
-        chunksRef.current.push(event.data);
-      };
-
-      mediaRecorder.start();
-      setIsAudioRecording(true);
-      setPermissionDenied(false);
+      const constraints = type === "video" 
+        ? { video: true, audio: true }
+        : { audio: true };
+      
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      setPermissionStatus("granted");
+      return stream;
     } catch (err) {
-      console.error("Failed to start audio recording:", err);
-      setPermissionDenied(true);
+      console.error("Permission denied:", err);
+      setPermissionStatus("denied");
+      return null;
     }
+  };
+
+  const startAudioRecording = async () => {
+    const stream = await requestPermissions("audio");
+    if (!stream) return;
+
+    streamRef.current = stream;
+    const mediaRecorder = new MediaRecorder(stream);
+    mediaRecorderRef.current = mediaRecorder;
+    chunksRef.current = [];
+
+    mediaRecorder.ondataavailable = (event) => {
+      if (event.data.size > 0) {
+        chunksRef.current.push(event.data);
+      }
+    };
+
+    mediaRecorder.start();
+    setIsAudioRecording(true);
   };
 
   const startVideoRecording = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-      
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        videoRef.current.play();
-      }
+    const stream = await requestPermissions("video");
+    if (!stream) return;
 
-      const mediaRecorder = new MediaRecorder(stream);
-      mediaRecorderRef.current = mediaRecorder;
-      chunksRef.current = [];
-
-      mediaRecorder.ondataavailable = (event) => {
-        chunksRef.current.push(event.data);
-      };
-
-      mediaRecorder.start();
-      setIsVideoRecording(true);
-      setPermissionDenied(false);
-    } catch (err) {
-      console.error("Failed to start video recording:", err);
-      setPermissionDenied(true);
+    streamRef.current = stream;
+    
+    if (videoRef.current) {
+      videoRef.current.srcObject = stream;
+      videoRef.current.play();
     }
+
+    const mediaRecorder = new MediaRecorder(stream);
+    mediaRecorderRef.current = mediaRecorder;
+    chunksRef.current = [];
+
+    mediaRecorder.ondataavailable = (event) => {
+      if (event.data.size > 0) {
+        chunksRef.current.push(event.data);
+      }
+    };
+
+    mediaRecorder.start();
+    setIsVideoRecording(true);
   };
 
   const stopRecording = () => {
-    if (mediaRecorderRef.current) {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
       mediaRecorderRef.current.stop();
-      mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
-      
-      if (videoRef.current) {
-        videoRef.current.srcObject = null;
-      }
-      
-      setIsAudioRecording(false);
-      setIsVideoRecording(false);
     }
+    
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
+    
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
+    
+    setIsAudioRecording(false);
+    setIsVideoRecording(false);
   };
 
   const handleStartPractice = () => {
@@ -175,10 +204,11 @@ export default function Record() {
       <div className="max-w-2xl mx-auto px-4 py-6">
         {!showSaveForm ? (
           <>
-            <Card className="p-8 mb-6 text-center">
+            {/* Main Timer Card */}
+            <Card className="p-8 mb-6 text-center bg-white border-2 border-gray-200">
               {/* Video Preview */}
               {isVideoRecording && (
-                <div className="mb-6 rounded-xl overflow-hidden bg-black aspect-video">
+                <div className="mb-6 rounded-xl overflow-hidden bg-black aspect-video border-2 border-red-500">
                   <video 
                     ref={videoRef} 
                     autoPlay 
@@ -186,20 +216,24 @@ export default function Record() {
                     playsInline
                     className="w-full h-full object-cover"
                   />
+                  <div className="absolute top-2 left-2 flex items-center gap-2 bg-red-600 text-white px-2 py-1 rounded text-xs font-medium">
+                    <span className="w-2 h-2 bg-white rounded-full animate-pulse" />
+                    Recording
+                  </div>
                 </div>
               )}
 
               <div className="mb-8">
-                <p className="text-6xl font-mono font-bold tracking-tight mb-2">
+                <p className="text-7xl font-mono font-bold tracking-tight mb-2 text-black">
                   {formatTime(elapsedTime)}
                 </p>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-base text-gray-600 font-medium">
                   {isTimerRunning 
                     ? isPaused 
-                      ? "Paused" 
+                      ? "⏸️ Paused" 
                       : isRecording
-                        ? "Recording..."
-                        : "Practice in progress..."
+                        ? "🔴 Recording..."
+                        : "▶️ Practice in progress..."
                     : "Ready to practice"
                   }
                 </p>
@@ -209,10 +243,10 @@ export default function Record() {
                 {!isTimerRunning ? (
                   <Button
                     size="lg"
-                    className="w-full h-14 text-lg font-semibold"
+                    className="w-full h-16 text-xl font-bold bg-black hover:bg-gray-800 text-white"
                     onClick={handleStartPractice}
                   >
-                    <Play className="mr-2 h-5 w-5" />
+                    <Play className="mr-3 h-6 w-6" />
                     Start Practice
                   </Button>
                 ) : (
@@ -220,7 +254,7 @@ export default function Record() {
                     <Button
                       size="lg"
                       variant="outline"
-                      className="flex-1 h-14"
+                      className="flex-1 h-14 text-lg font-semibold border-2 border-gray-300 hover:bg-gray-100"
                       onClick={handlePauseResume}
                     >
                       {isPaused ? (
@@ -237,12 +271,11 @@ export default function Record() {
                     </Button>
                     <Button
                       size="lg"
-                      variant="destructive"
-                      className="flex-1 h-14"
+                      className="flex-1 h-14 text-lg font-semibold bg-red-600 hover:bg-red-700 text-white"
                       onClick={handleEndPractice}
                     >
                       <Square className="mr-2 h-5 w-5" />
-                      End Practice
+                      End
                     </Button>
                   </div>
                 )}
@@ -251,80 +284,98 @@ export default function Record() {
 
             {/* Recording Options */}
             {isTimerRunning && (
-              <Card className="p-6 mb-6">
-                <h3 className="font-semibold mb-4">Recording Options</h3>
+              <Card className="p-6 mb-6 bg-white border-2 border-gray-200">
+                <h3 className="font-bold text-lg mb-4 text-black">Recording Options</h3>
+                
+                {permissionStatus === "denied" && (
+                  <div className="mb-4 p-4 bg-red-50 border-2 border-red-200 rounded-xl flex items-start gap-3">
+                    <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-semibold text-red-800">Permission Required</p>
+                      <p className="text-sm text-red-700">
+                        Please allow camera/microphone access in your browser settings to record.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
                 <div className="flex gap-3">
                   <Button
                     variant={isAudioRecording ? "destructive" : "outline"}
-                    className="flex-1"
+                    className={`flex-1 h-14 text-base font-semibold ${
+                      isAudioRecording 
+                        ? "bg-red-600 hover:bg-red-700 text-white border-0" 
+                        : "border-2 border-gray-300 hover:bg-gray-100"
+                    }`}
                     onClick={isAudioRecording ? stopRecording : startAudioRecording}
                     disabled={isVideoRecording}
                   >
                     {isAudioRecording ? (
                       <>
-                        <MicOff className="mr-2 h-4 w-4" />
+                        <MicOff className="mr-2 h-5 w-5" />
                         Stop Audio
                       </>
                     ) : (
                       <>
-                        <Mic className="mr-2 h-4 w-4" />
-                        Record Audio
+                        <Mic className="mr-2 h-5 w-5" />
+                        🎙️ Record Audio
                       </>
                     )}
                   </Button>
                   <Button
                     variant={isVideoRecording ? "destructive" : "outline"}
-                    className="flex-1"
+                    className={`flex-1 h-14 text-base font-semibold ${
+                      isVideoRecording 
+                        ? "bg-red-600 hover:bg-red-700 text-white border-0" 
+                        : "border-2 border-gray-300 hover:bg-gray-100"
+                    }`}
                     onClick={isVideoRecording ? stopRecording : startVideoRecording}
                     disabled={isAudioRecording}
                   >
                     {isVideoRecording ? (
                       <>
-                        <VideoOff className="mr-2 h-4 w-4" />
+                        <VideoOff className="mr-2 h-5 w-5" />
                         Stop Video
                       </>
                     ) : (
                       <>
-                        <Video className="mr-2 h-4 w-4" />
-                        Record Video
+                        <Video className="mr-2 h-5 w-5" />
+                        📹 Record Video
                       </>
                     )}
                   </Button>
                 </div>
 
-                {permissionDenied && (
-                  <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-                    <p className="text-sm text-red-700">
-                      Camera/microphone access denied. Please enable it in your browser settings.
-                    </p>
-                  </div>
-                )}
+                <p className="text-sm text-gray-500 mt-3 text-center">
+                  Recording is optional. Your browser will ask for permission.
+                </p>
               </Card>
             )}
 
-            <Card className="p-6">
-              <h2 className="text-lg font-semibold mb-4">Recent Practice Sessions</h2>
+            {/* Recent Sessions */}
+            <Card className="p-6 bg-white border-2 border-gray-200">
+              <h2 className="text-lg font-bold mb-4 text-black">Recent Practice Sessions</h2>
               {recentSessions.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  <Clock className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                  <p className="text-sm">No practice sessions yet</p>
-                  <p className="text-xs mt-1">Start practicing to see your history</p>
+                <div className="text-center py-8">
+                  <Clock className="h-12 w-12 mx-auto mb-3 text-gray-300" />
+                  <p className="text-gray-600 font-medium">No practice sessions yet</p>
+                  <p className="text-sm text-gray-400 mt-1">Start practicing to see your history</p>
                 </div>
               ) : (
                 <div className="space-y-3">
                   {recentSessions.map((session) => (
                     <div 
                       key={session.id} 
-                      className="flex items-center gap-4 p-3 bg-muted rounded-lg"
+                      className="flex items-center gap-4 p-4 bg-gray-50 rounded-xl border border-gray-200"
                     >
-                      <div className="h-10 w-10 rounded-full bg-background flex items-center justify-center">
-                        <Clock className="h-5 w-5" />
+                      <div className="h-12 w-12 rounded-full bg-white border-2 border-gray-200 flex items-center justify-center">
+                        <Clock className="h-6 w-6 text-gray-600" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="font-medium truncate">
+                        <p className="font-semibold text-black truncate">
                           {session.piece || "Practice Session"}
                         </p>
-                        <p className="text-sm text-muted-foreground">
+                        <p className="text-sm text-gray-500">
                           {new Date(session.date).toLocaleDateString()} • {formatTime(session.duration)}
                         </p>
                       </div>
@@ -335,62 +386,66 @@ export default function Record() {
             </Card>
           </>
         ) : (
-          <Card className="p-6">
+          /* Save Form */
+          <Card className="p-6 bg-white border-2 border-gray-200">
             <div className="text-center mb-6">
-              <div className="inline-flex items-center justify-center h-16 w-16 rounded-full bg-green-100 mb-4">
-                <Check className="h-8 w-8 text-green-600" />
+              <div className="inline-flex items-center justify-center h-20 w-20 rounded-full bg-green-100 mb-4">
+                <Check className="h-10 w-10 text-green-600" />
               </div>
-              <h2 className="text-xl font-bold mb-1">Great Practice!</h2>
-              <p className="text-3xl font-mono font-bold text-accent">
+              <h2 className="text-2xl font-bold mb-1 text-black">Great Practice!</h2>
+              <p className="text-4xl font-mono font-bold text-black">
                 {formatTime(elapsedTime)}
               </p>
             </div>
 
             <div className="space-y-4">
               <div>
-                <label className="text-sm font-medium mb-2 block">
+                <label className="text-sm font-semibold mb-2 block text-black">
                   What did you practice?
                 </label>
                 <Input 
                   placeholder="e.g., Moonlight Sonata"
                   value={practiceData.piece}
                   onChange={(e) => setPracticeData(prev => ({ ...prev, piece: e.target.value }))}
+                  className="h-12 bg-gray-50 border-2 border-gray-200 text-black"
                 />
               </div>
 
               <div>
-                <label className="text-sm font-medium mb-2 block">Composer (optional)</label>
+                <label className="text-sm font-semibold mb-2 block text-black">Composer (optional)</label>
                 <Input 
                   placeholder="e.g., Beethoven"
                   value={practiceData.composer}
                   onChange={(e) => setPracticeData(prev => ({ ...prev, composer: e.target.value }))}
+                  className="h-12 bg-gray-50 border-2 border-gray-200 text-black"
                 />
               </div>
 
               <div>
-                <label className="text-sm font-medium mb-2 block">Notes (optional)</label>
+                <label className="text-sm font-semibold mb-2 block text-black">Notes (optional)</label>
                 <Textarea 
                   placeholder="How did the session go? Any breakthroughs?"
                   value={practiceData.notes}
                   onChange={(e) => setPracticeData(prev => ({ ...prev, notes: e.target.value }))}
                   rows={3}
+                  className="bg-gray-50 border-2 border-gray-200 text-black"
                 />
               </div>
 
               <div className="flex gap-3 pt-4">
                 <Button 
                   variant="outline" 
-                  className="flex-1" 
+                  className="flex-1 h-12 font-semibold border-2 border-gray-300" 
                   onClick={handleDiscardPractice}
                 >
                   Discard
                 </Button>
                 <Button 
-                  className="flex-1"
+                  className="flex-1 h-12 font-semibold bg-black hover:bg-gray-800 text-white"
                   onClick={handleSaveLog}
                 >
                   <Check className="mr-2 h-5 w-5" />
-                  Save Practice Log
+                  Save Log
                 </Button>
               </div>
             </div>
