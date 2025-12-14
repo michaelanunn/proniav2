@@ -6,21 +6,14 @@ import { EditProfileModal } from "@/components/EditProfileModal";
 import { FollowersModal } from "@/components/FollowersModal";
 import { usePractice } from "@/contexts/PracticeContext";
 import { useAuth } from "@/contexts/AuthContext";
-import { Settings, Share2, User, Music, Flame, Clock, Loader2, Lock } from "lucide-react";
+import { Settings, Share2, User, Clock, Loader2, Lock, Check } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
-const badges = [
-  { icon: Music, color: "text-foreground", isComponent: false },
-  { icon: User, color: "text-foreground", isComponent: false },
-  { text: "#127", isComponent: true },
-  { icon: Flame, color: "text-accent", isComponent: false },
-];
-
 export default function Profile() {
   const router = useRouter();
-  const { user, profile, isLoading, updateProfile, refreshProfile } = useAuth();
+  const { user, profile, isLoading, updateProfile } = useAuth();
   const { sessions } = usePractice();
   
   const [activeTab, setActiveTab] = useState("posts");
@@ -28,6 +21,10 @@ export default function Profile() {
   const [isFollowersModalOpen, setIsFollowersModalOpen] = useState(false);
   const [followersModalTab, setFollowersModalTab] = useState<"followers" | "following">("followers");
   const [isPrivate, setIsPrivate] = useState(false);
+  const [showCopiedToast, setShowCopiedToast] = useState(false);
+
+  // Calculate streak from sessions
+  const streak = sessions.length > 0 ? Math.min(sessions.length, 7) : 0;
 
   // Check if profile is private
   useEffect(() => {
@@ -71,6 +68,17 @@ export default function Profile() {
     return `${mins} minutes`;
   };
 
+  const handleShareProfile = async () => {
+    const profileUrl = `${window.location.origin}/user/${profile?.username}`;
+    try {
+      await navigator.clipboard.writeText(profileUrl);
+      setShowCopiedToast(true);
+      setTimeout(() => setShowCopiedToast(false), 2500);
+    } catch (err) {
+      console.error("Failed to copy:", err);
+    }
+  };
+
   const handleSaveProfile = async (data: typeof editData) => {
     try {
       await updateProfile({
@@ -87,9 +95,9 @@ export default function Profile() {
 
   if (isLoading) {
     return (
-      <Layout streak={7}>
+      <Layout streak={streak}>
         <div className="flex items-center justify-center py-20">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
         </div>
       </Layout>
     );
@@ -100,7 +108,7 @@ export default function Profile() {
   }
 
   return (
-    <Layout streak={7}>
+    <Layout streak={streak}>
       <EditProfileModal
         isOpen={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}
@@ -114,44 +122,50 @@ export default function Profile() {
         followersCount={profile.followers_count?.toString() || "0"}
         followingCount={profile.following_count?.toString() || "0"}
       />
+
+      {/* Copied Toast */}
+      {showCopiedToast && (
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 animate-in fade-in slide-in-from-top-2 duration-300">
+          <div className="bg-black text-white px-4 py-2 rounded-full flex items-center gap-2 shadow-lg">
+            <Check className="h-4 w-4" />
+            <span className="text-sm font-medium">Profile link copied!</span>
+          </div>
+        </div>
+      )}
+
       <div className="max-w-2xl mx-auto px-4 py-6">
         <div className="flex justify-end items-center gap-2 mb-4">
-          <Button variant="ghost" size="icon">
-            <Share2 className="h-5 w-5" />
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={handleShareProfile}
+            className="hover:bg-gray-100"
+          >
+            <Share2 className="h-5 w-5 text-black" />
           </Button>
-          <Button variant="ghost" size="icon" onClick={() => router.push("/settings")}>
-            <Settings className="h-5 w-5" />
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={() => router.push("/settings")}
+            className="hover:bg-gray-100"
+          >
+            <Settings className="h-5 w-5 text-black" />
           </Button>
         </div>
 
         {/* Private Profile Indicator */}
         {isPrivate && (
-          <Alert className="mb-4 border-amber-200 bg-amber-50 dark:bg-amber-950 dark:border-amber-800">
+          <Alert className="mb-4 border-amber-200 bg-amber-50">
             <Lock className="h-4 w-4 text-amber-600" />
-            <AlertDescription className="text-amber-800 dark:text-amber-200 font-medium">
+            <AlertDescription className="text-amber-800 font-medium">
               Private Account - Only approved followers can see your posts
             </AlertDescription>
           </Alert>
         )}
 
         <div className="mb-6">
-          <div className="flex justify-center gap-3 mb-6">
-            {badges.map((badge, i) => (
-              <div
-                key={i}
-                className="h-12 w-12 rounded-full border-2 border-border bg-background flex items-center justify-center"
-              >
-                {badge.isComponent ? (
-                  <span className="text-xs font-bold">{badge.text}</span>
-                ) : (
-                  <badge.icon className={`h-5 w-5 ${badge.color}`} />
-                )}
-              </div>
-            ))}
-          </div>
-
           <div className="flex flex-col items-center text-center mb-4">
-            <div className="h-24 w-24 rounded-full bg-muted flex items-center justify-center mb-3 overflow-hidden">
+            <div className="h-24 w-24 rounded-full bg-gray-100 flex items-center justify-center mb-3 overflow-hidden border-2 border-gray-200">
               {profile.avatar_url ? (
                 <img
                   src={profile.avatar_url}
@@ -159,13 +173,13 @@ export default function Profile() {
                   className="h-full w-full object-cover"
                 />
               ) : (
-                <User className="h-12 w-12" />
+                <User className="h-12 w-12 text-gray-400" />
               )}
             </div>
-            <h1 className="text-xl font-bold mb-1">{profile.name}</h1>
-            <p className="text-sm text-muted-foreground mb-3">@{profile.username}</p>
+            <h1 className="text-xl font-bold mb-1 text-black">{profile.name}</h1>
+            <p className="text-sm text-gray-500 mb-3">@{profile.username}</p>
             {profile.bio && (
-              <p className="text-sm mb-4 px-4">{profile.bio}</p>
+              <p className="text-sm mb-4 px-4 text-gray-700">{profile.bio}</p>
             )}
             
             {/* Instruments */}
@@ -174,7 +188,7 @@ export default function Profile() {
                 {profile.instruments.map((instrument) => (
                   <span
                     key={instrument}
-                    className="px-3 py-1 bg-secondary rounded-full text-xs font-medium capitalize"
+                    className="px-3 py-1 bg-gray-100 rounded-full text-xs font-medium capitalize text-gray-700"
                   >
                     {instrument}
                   </span>
@@ -184,7 +198,7 @@ export default function Profile() {
             
             <Button 
               variant="outline" 
-              className="w-full max-w-xs"
+              className="w-full max-w-xs border-gray-300 text-black hover:bg-gray-100"
               onClick={() => setIsEditModalOpen(true)}
             >
               Edit Profile
@@ -193,58 +207,58 @@ export default function Profile() {
 
           <div className="grid grid-cols-3 gap-4 text-center py-6">
             <div>
-              <p className="text-2xl font-bold">{sessions.length}</p>
-              <p className="text-xs text-muted-foreground">Sessions</p>
+              <p className="text-2xl font-bold text-black">{sessions.length}</p>
+              <p className="text-xs text-gray-500">Sessions</p>
             </div>
             <button
               onClick={() => {
                 setFollowersModalTab("followers");
                 setIsFollowersModalOpen(true);
               }}
-              className="hover:bg-muted/50 rounded-lg py-2 transition-colors"
+              className="hover:bg-gray-100 rounded-lg py-2 transition-colors"
             >
-              <p className="text-2xl font-bold">{profile.followers_count || 0}</p>
-              <p className="text-xs text-muted-foreground">Followers</p>
+              <p className="text-2xl font-bold text-black">{profile.followers_count || 0}</p>
+              <p className="text-xs text-gray-500">Followers</p>
             </button>
             <button
               onClick={() => {
                 setFollowersModalTab("following");
                 setIsFollowersModalOpen(true);
               }}
-              className="hover:bg-muted/50 rounded-lg py-2 transition-colors"
+              className="hover:bg-gray-100 rounded-lg py-2 transition-colors"
             >
-              <p className="text-2xl font-bold">{profile.following_count || 0}</p>
-              <p className="text-xs text-muted-foreground">Following</p>
+              <p className="text-2xl font-bold text-black">{profile.following_count || 0}</p>
+              <p className="text-xs text-gray-500">Following</p>
             </button>
           </div>
         </div>
 
-        <div className="flex gap-6 mb-6 border-b border-border justify-center">
+        <div className="flex gap-6 mb-6 border-b border-gray-200 justify-center">
           <button
-            className={`pb-3 text-sm font-medium transition-colors ${
+            className={`pb-3 text-sm font-semibold transition-colors ${
               activeTab === "posts"
-                ? "text-foreground border-b-2 border-foreground"
-                : "text-muted-foreground"
+                ? "text-black border-b-2 border-black"
+                : "text-gray-500 hover:text-gray-700"
             }`}
             onClick={() => setActiveTab("posts")}
           >
             Posts
           </button>
           <button
-            className={`pb-3 text-sm font-medium transition-colors ${
+            className={`pb-3 text-sm font-semibold transition-colors ${
               activeTab === "logs"
-                ? "text-foreground border-b-2 border-foreground"
-                : "text-muted-foreground"
+                ? "text-black border-b-2 border-black"
+                : "text-gray-500 hover:text-gray-700"
             }`}
             onClick={() => setActiveTab("logs")}
           >
             Logs
           </button>
           <button
-            className={`pb-3 text-sm font-medium transition-colors ${
+            className={`pb-3 text-sm font-semibold transition-colors ${
               activeTab === "liked"
-                ? "text-foreground border-b-2 border-foreground"
-                : "text-muted-foreground"
+                ? "text-black border-b-2 border-black"
+                : "text-gray-500 hover:text-gray-700"
             }`}
             onClick={() => setActiveTab("liked")}
           >
@@ -253,28 +267,28 @@ export default function Profile() {
         </div>
 
         {activeTab === "posts" && (
-          <div className="text-center py-12 text-muted-foreground">
-            <Clock className="h-12 w-12 mx-auto mb-3 opacity-50" />
-            <p className="text-sm">No posts yet</p>
-            <p className="text-xs mt-1">Record a practice session to share</p>
+          <div className="text-center py-12">
+            <Clock className="h-12 w-12 mx-auto mb-3 text-gray-300" />
+            <p className="text-sm text-gray-600">No posts yet</p>
+            <p className="text-xs mt-1 text-gray-400">Record a practice session to share</p>
           </div>
         )}
 
         {activeTab === "logs" && (
           <div className="space-y-3">
             {sessions.length === 0 ? (
-              <div className="text-center py-12 text-muted-foreground">
-                <Clock className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                <p className="text-sm">No practice logs yet</p>
-                <p className="text-xs mt-1">Start a practice session to see your history</p>
+              <div className="text-center py-12">
+                <Clock className="h-12 w-12 mx-auto mb-3 text-gray-300" />
+                <p className="text-sm text-gray-600">No practice logs yet</p>
+                <p className="text-xs mt-1 text-gray-400">Start a practice session to see your history</p>
               </div>
             ) : (
               sessions.map((session) => (
-                <div key={session.id} className="p-4 border border-border rounded-lg">
-                  <h3 className="font-semibold mb-1">
+                <div key={session.id} className="p-4 border border-gray-200 rounded-lg bg-white">
+                  <h3 className="font-semibold mb-1 text-black">
                     {session.piece || "Practice Session"}
                   </h3>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm text-gray-500">
                     {new Date(session.date).toLocaleDateString("en-US", { 
                       weekday: "short",
                       month: "short", 
@@ -284,7 +298,7 @@ export default function Profile() {
                     })} • {formatDuration(session.duration)}
                   </p>
                   {session.notes && (
-                    <p className="text-sm mt-2 text-muted-foreground">{session.notes}</p>
+                    <p className="text-sm mt-2 text-gray-600">{session.notes}</p>
                   )}
                 </div>
               ))
@@ -293,9 +307,9 @@ export default function Profile() {
         )}
 
         {activeTab === "liked" && (
-          <div className="text-center py-12 text-muted-foreground">
-            <Clock className="h-12 w-12 mx-auto mb-3 opacity-50" />
-            <p className="text-sm">No liked posts yet</p>
+          <div className="text-center py-12">
+            <Clock className="h-12 w-12 mx-auto mb-3 text-gray-300" />
+            <p className="text-sm text-gray-600">No liked posts yet</p>
           </div>
         )}
       </div>

@@ -1,5 +1,6 @@
 -- ============================================
 -- PRONIA DATABASE SCHEMA
+-- Fresh clean schema for Supabase
 -- Run this in Supabase SQL Editor
 -- ============================================
 
@@ -8,8 +9,9 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- ============================================
 -- 1. PROFILES TABLE
+-- Core user profile data
 -- ============================================
-CREATE TABLE IF NOT EXISTS public.profiles (
+CREATE TABLE public.profiles (
   id UUID REFERENCES auth.users(id) ON DELETE CASCADE PRIMARY KEY,
   email TEXT,
   name TEXT NOT NULL DEFAULT '',
@@ -17,12 +19,14 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   bio TEXT DEFAULT '',
   avatar_url TEXT,
   instruments TEXT[] DEFAULT '{}',
-  years_playing TEXT,
-  experience_level TEXT DEFAULT '',
+  years_playing JSONB DEFAULT '{}', -- {"piano": 5, "violin": 2}
   
-  -- Stats
+  -- Social Stats
   followers_count INTEGER DEFAULT 0,
   following_count INTEGER DEFAULT 0,
+  posts_count INTEGER DEFAULT 0,
+  
+  -- Practice Stats
   total_practice_seconds INTEGER DEFAULT 0,
   current_streak INTEGER DEFAULT 0,
   longest_streak INTEGER DEFAULT 0,
@@ -45,8 +49,9 @@ CREATE TABLE IF NOT EXISTS public.profiles (
 
 -- ============================================
 -- 2. FOLLOWS TABLE
+-- User follow relationships
 -- ============================================
-CREATE TABLE IF NOT EXISTS public.follows (
+CREATE TABLE public.follows (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   follower_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
   following_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
@@ -56,50 +61,51 @@ CREATE TABLE IF NOT EXISTS public.follows (
 
 -- ============================================
 -- 3. PRACTICE SESSIONS TABLE
+-- Individual practice session logs
 -- ============================================
-CREATE TABLE IF NOT EXISTS public.practice_sessions (
+CREATE TABLE public.practice_sessions (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
   duration INTEGER NOT NULL, -- in seconds
   piece TEXT,
   composer TEXT,
   notes TEXT,
-  audio_url TEXT, -- URL to audio recording in storage
-  video_url TEXT, -- URL to video recording in storage
+  audio_url TEXT,
+  video_url TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- ============================================
--- 4. POSTS TABLE (Video performances)
+-- 4. POSTS TABLE
+-- Video/audio performance posts
 -- ============================================
-CREATE TABLE IF NOT EXISTS public.posts (
+CREATE TABLE public.posts (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
   piece_title TEXT,
   composer TEXT,
   caption TEXT,
-  media_url TEXT NOT NULL, -- Video/audio URL
+  media_url TEXT NOT NULL,
   media_type TEXT DEFAULT 'video', -- 'video' or 'audio'
   thumbnail_url TEXT,
-  duration INTEGER, -- in seconds
+  duration INTEGER,
   
-  -- Engagement
+  -- Engagement counts
   views_count INTEGER DEFAULT 0,
   likes_count INTEGER DEFAULT 0,
   comments_count INTEGER DEFAULT 0,
   saves_count INTEGER DEFAULT 0,
   
-  -- Visibility
   is_public BOOLEAN DEFAULT TRUE,
-  
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- ============================================
 -- 5. LIKES TABLE
+-- Post likes
 -- ============================================
-CREATE TABLE IF NOT EXISTS public.likes (
+CREATE TABLE public.likes (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
   post_id UUID REFERENCES public.posts(id) ON DELETE CASCADE NOT NULL,
@@ -109,8 +115,9 @@ CREATE TABLE IF NOT EXISTS public.likes (
 
 -- ============================================
 -- 6. SAVED POSTS TABLE
+-- Bookmarked posts
 -- ============================================
-CREATE TABLE IF NOT EXISTS public.saved_posts (
+CREATE TABLE public.saved_posts (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
   post_id UUID REFERENCES public.posts(id) ON DELETE CASCADE NOT NULL,
@@ -120,12 +127,13 @@ CREATE TABLE IF NOT EXISTS public.saved_posts (
 
 -- ============================================
 -- 7. COMMENTS TABLE
+-- Post comments with replies
 -- ============================================
-CREATE TABLE IF NOT EXISTS public.comments (
+CREATE TABLE public.comments (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
   post_id UUID REFERENCES public.posts(id) ON DELETE CASCADE NOT NULL,
-  parent_id UUID REFERENCES public.comments(id) ON DELETE CASCADE, -- For replies
+  parent_id UUID REFERENCES public.comments(id) ON DELETE CASCADE,
   content TEXT NOT NULL,
   likes_count INTEGER DEFAULT 0,
   created_at TIMESTAMPTZ DEFAULT NOW()
@@ -134,7 +142,7 @@ CREATE TABLE IF NOT EXISTS public.comments (
 -- ============================================
 -- 8. COMMENT LIKES TABLE
 -- ============================================
-CREATE TABLE IF NOT EXISTS public.comment_likes (
+CREATE TABLE public.comment_likes (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
   comment_id UUID REFERENCES public.comments(id) ON DELETE CASCADE NOT NULL,
@@ -145,10 +153,10 @@ CREATE TABLE IF NOT EXISTS public.comment_likes (
 -- ============================================
 -- 9. NOTIFICATIONS TABLE
 -- ============================================
-CREATE TABLE IF NOT EXISTS public.notifications (
+CREATE TABLE public.notifications (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-  user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL, -- Who receives the notification
-  actor_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL, -- Who triggered it
+  user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
+  actor_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
   type TEXT NOT NULL, -- 'like', 'comment', 'follow', 'mention'
   post_id UUID REFERENCES public.posts(id) ON DELETE CASCADE,
   comment_id UUID REFERENCES public.comments(id) ON DELETE CASCADE,
@@ -157,24 +165,39 @@ CREATE TABLE IF NOT EXISTS public.notifications (
 );
 
 -- ============================================
--- 10. USER LIBRARY (Pieces being learned)
+-- 10. USER LIBRARY
+-- Pieces user is learning
 -- ============================================
-CREATE TABLE IF NOT EXISTS public.user_library (
+CREATE TABLE public.user_library (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
+  folder_id UUID,
   title TEXT NOT NULL,
   composer TEXT,
   era TEXT,
   status TEXT DEFAULT 'not_started', -- 'not_started', 'in_progress', 'mastered'
-  progress INTEGER DEFAULT 0, -- 0-100
+  progress INTEGER DEFAULT 0,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- ============================================
--- 11. JOURNAL ENTRIES
+-- 11. LIBRARY FOLDERS
+-- User-created folders for organizing pieces
 -- ============================================
-CREATE TABLE IF NOT EXISTS public.journal_entries (
+CREATE TABLE public.library_folders (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
+  name TEXT NOT NULL,
+  image_url TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ============================================
+-- 12. JOURNAL ENTRIES
+-- Practice journal
+-- ============================================
+CREATE TABLE public.journal_entries (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
   content TEXT NOT NULL,
@@ -184,9 +207,10 @@ CREATE TABLE IF NOT EXISTS public.journal_entries (
 );
 
 -- ============================================
--- 12. WEEKLY STATS (for analytics)
+-- 13. WEEKLY STATS
+-- Aggregated weekly practice data
 -- ============================================
-CREATE TABLE IF NOT EXISTS public.weekly_stats (
+CREATE TABLE public.weekly_stats (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
   week_start DATE NOT NULL,
@@ -211,13 +235,14 @@ ALTER TABLE public.comments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.comment_likes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.user_library ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.library_folders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.journal_entries ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.weekly_stats ENABLE ROW LEVEL SECURITY;
 
 -- ============================================
 -- PROFILES POLICIES
 -- ============================================
-CREATE POLICY "Profiles are viewable by everyone" ON public.profiles
+CREATE POLICY "Public profiles are viewable by everyone" ON public.profiles
   FOR SELECT USING (true);
 
 CREATE POLICY "Users can update own profile" ON public.profiles
@@ -247,24 +272,14 @@ CREATE POLICY "Users can view own sessions" ON public.practice_sessions
 CREATE POLICY "Users can create sessions" ON public.practice_sessions
   FOR INSERT WITH CHECK (auth.uid() = user_id);
 
-CREATE POLICY "Users can update own sessions" ON public.practice_sessions
-  FOR UPDATE USING (auth.uid() = user_id);
-
 CREATE POLICY "Users can delete own sessions" ON public.practice_sessions
   FOR DELETE USING (auth.uid() = user_id);
 
 -- ============================================
 -- POSTS POLICIES
 -- ============================================
-CREATE POLICY "Public posts are viewable by everyone" ON public.posts
-  FOR SELECT USING (
-    is_public = true OR 
-    auth.uid() = user_id OR
-    EXISTS (
-      SELECT 1 FROM public.follows 
-      WHERE follower_id = auth.uid() AND following_id = posts.user_id
-    )
-  );
+CREATE POLICY "Public posts are viewable" ON public.posts
+  FOR SELECT USING (is_public = true OR auth.uid() = user_id);
 
 CREATE POLICY "Users can create posts" ON public.posts
   FOR INSERT WITH CHECK (auth.uid() = user_id);
@@ -278,7 +293,7 @@ CREATE POLICY "Users can delete own posts" ON public.posts
 -- ============================================
 -- LIKES POLICIES
 -- ============================================
-CREATE POLICY "Likes are viewable by everyone" ON public.likes
+CREATE POLICY "Likes are viewable" ON public.likes
   FOR SELECT USING (true);
 
 CREATE POLICY "Users can like" ON public.likes
@@ -302,7 +317,7 @@ CREATE POLICY "Users can unsave" ON public.saved_posts
 -- ============================================
 -- COMMENTS POLICIES
 -- ============================================
-CREATE POLICY "Comments are viewable by everyone" ON public.comments
+CREATE POLICY "Comments are viewable" ON public.comments
   FOR SELECT USING (true);
 
 CREATE POLICY "Users can comment" ON public.comments
@@ -332,7 +347,7 @@ CREATE POLICY "Users can unlike comments" ON public.comment_likes
 CREATE POLICY "Users can view own notifications" ON public.notifications
   FOR SELECT USING (auth.uid() = user_id);
 
-CREATE POLICY "System can create notifications" ON public.notifications
+CREATE POLICY "Anyone can create notifications" ON public.notifications
   FOR INSERT WITH CHECK (true);
 
 CREATE POLICY "Users can update own notifications" ON public.notifications
@@ -351,6 +366,21 @@ CREATE POLICY "Users can update library" ON public.user_library
   FOR UPDATE USING (auth.uid() = user_id);
 
 CREATE POLICY "Users can delete from library" ON public.user_library
+  FOR DELETE USING (auth.uid() = user_id);
+
+-- ============================================
+-- LIBRARY FOLDERS POLICIES
+-- ============================================
+CREATE POLICY "Users can view own folders" ON public.library_folders
+  FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can create folders" ON public.library_folders
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update folders" ON public.library_folders
+  FOR UPDATE USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete folders" ON public.library_folders
   FOR DELETE USING (auth.uid() = user_id);
 
 -- ============================================
@@ -374,11 +404,11 @@ CREATE POLICY "Users can delete entries" ON public.journal_entries
 CREATE POLICY "Users can view own stats" ON public.weekly_stats
   FOR SELECT USING (auth.uid() = user_id);
 
-CREATE POLICY "System can manage stats" ON public.weekly_stats
+CREATE POLICY "Users can manage own stats" ON public.weekly_stats
   FOR ALL USING (auth.uid() = user_id);
 
 -- ============================================
--- FUNCTIONS
+-- FUNCTIONS & TRIGGERS
 -- ============================================
 
 -- Auto-create profile on signup
@@ -398,13 +428,12 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Trigger for new user
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
--- Update follower counts
+-- Update follower counts on follow/unfollow
 CREATE OR REPLACE FUNCTION public.update_follower_counts()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -484,7 +513,7 @@ RETURNS TRIGGER AS $$
 DECLARE
   week_start_date DATE;
 BEGIN
-  -- Update total practice time
+  -- Update total practice time and streak
   UPDATE public.profiles 
   SET 
     total_practice_seconds = total_practice_seconds + NEW.duration,
@@ -533,10 +562,29 @@ CREATE TRIGGER on_practice_session_created
   AFTER INSERT ON public.practice_sessions
   FOR EACH ROW EXECUTE FUNCTION public.update_practice_stats();
 
+-- Update post count when post is created/deleted
+CREATE OR REPLACE FUNCTION public.update_post_counts()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF TG_OP = 'INSERT' THEN
+    UPDATE public.profiles SET posts_count = posts_count + 1 WHERE id = NEW.user_id;
+  ELSIF TG_OP = 'DELETE' THEN
+    UPDATE public.profiles SET posts_count = GREATEST(posts_count - 1, 0) WHERE id = OLD.user_id;
+  END IF;
+  RETURN NULL;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS on_post_change ON public.posts;
+CREATE TRIGGER on_post_change
+  AFTER INSERT OR DELETE ON public.posts
+  FOR EACH ROW EXECUTE FUNCTION public.update_post_counts();
+
 -- ============================================
 -- INDEXES FOR PERFORMANCE
 -- ============================================
 CREATE INDEX IF NOT EXISTS idx_profiles_username ON public.profiles(username);
+CREATE INDEX IF NOT EXISTS idx_profiles_created ON public.profiles(created_at);
 CREATE INDEX IF NOT EXISTS idx_follows_follower ON public.follows(follower_id);
 CREATE INDEX IF NOT EXISTS idx_follows_following ON public.follows(following_id);
 CREATE INDEX IF NOT EXISTS idx_practice_sessions_user ON public.practice_sessions(user_id);
@@ -547,15 +595,18 @@ CREATE INDEX IF NOT EXISTS idx_likes_post ON public.likes(post_id);
 CREATE INDEX IF NOT EXISTS idx_comments_post ON public.comments(post_id);
 CREATE INDEX IF NOT EXISTS idx_notifications_user ON public.notifications(user_id);
 CREATE INDEX IF NOT EXISTS idx_notifications_unread ON public.notifications(user_id) WHERE is_read = false;
+CREATE INDEX IF NOT EXISTS idx_user_library_user ON public.user_library(user_id);
+CREATE INDEX IF NOT EXISTS idx_library_folders_user ON public.library_folders(user_id);
+CREATE INDEX IF NOT EXISTS idx_journal_entries_user ON public.journal_entries(user_id);
 
 -- ============================================
--- STORAGE BUCKETS (Run separately in Storage tab)
+-- STORAGE BUCKETS (Create in Supabase Dashboard)
 -- ============================================
--- You already have: avatars, scores, user-pdfs
--- You need to create:
--- 1. "recordings" bucket for audio/video recordings
--- 2. "posts" bucket for post media
+-- 1. "avatars" - Profile pictures (public)
+-- 2. "recordings" - Practice recordings (audio/video)
+-- 3. "posts" - Post media (videos, thumbnails)
+-- 4. "folders" - Library folder images
 
 -- ============================================
--- DONE! 
+-- DONE!
 -- ============================================

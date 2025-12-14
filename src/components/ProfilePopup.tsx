@@ -3,6 +3,7 @@
 import { X, User, Heart, BookMarked, FileText, Settings, LogOut, Library } from "lucide-react";
 import { Button } from "./ui/button";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface ProfilePopupProps {
   isOpen: boolean;
@@ -21,6 +22,7 @@ const menuItems = [
 
 export const ProfilePopup = ({ isOpen, onClose }: ProfilePopupProps) => {
   const router = useRouter();
+  const { user, profile, signOut } = useAuth();
 
   if (!isOpen) return null;
 
@@ -28,6 +30,16 @@ export const ProfilePopup = ({ isOpen, onClose }: ProfilePopupProps) => {
     router.push(path);
     onClose();
   };
+
+  const handleLogout = async () => {
+    await signOut();
+    onClose();
+    router.push("/");
+  };
+
+  const displayName = profile?.name || user?.user_metadata?.name || "User";
+  const displayUsername = profile?.username || user?.user_metadata?.username || "user";
+  const avatarUrl = profile?.avatar_url || user?.user_metadata?.avatar_url;
 
   return (
     <>
@@ -48,11 +60,15 @@ export const ProfilePopup = ({ isOpen, onClose }: ProfilePopupProps) => {
             </Button>
             
             <div className="flex flex-col items-center text-center mt-8">
-              <div className="h-24 w-24 rounded-full bg-muted flex items-center justify-center mb-4">
-                <User className="h-12 w-12" />
+              <div className="h-24 w-24 rounded-full bg-muted flex items-center justify-center mb-4 overflow-hidden">
+                {avatarUrl ? (
+                  <img src={avatarUrl} alt={displayName} className="h-full w-full object-cover" />
+                ) : (
+                  <User className="h-12 w-12" />
+                )}
               </div>
-              <h2 className="text-xl font-bold">Emma Smith</h2>
-              <p className="text-sm text-muted-foreground">@emmasmith</p>
+              <h2 className="text-xl font-bold">{displayName}</h2>
+              <p className="text-sm text-muted-foreground">@{displayUsername}</p>
             </div>
           </div>
 
@@ -75,6 +91,7 @@ export const ProfilePopup = ({ isOpen, onClose }: ProfilePopupProps) => {
             <Button
               variant="ghost"
               className="w-full justify-start gap-3 text-destructive hover:text-destructive"
+              onClick={handleLogout}
             >
               <LogOut className="h-5 w-5" />
               <span className="font-medium">Log Out</span>

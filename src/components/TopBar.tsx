@@ -4,6 +4,8 @@ import { Flame, User } from "lucide-react";
 import { Button } from "./ui/button";
 import { useState } from "react";
 import { ProfilePopup } from "./ProfilePopup";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface TopBarProps {
   streak?: number;
@@ -12,6 +14,15 @@ interface TopBarProps {
 
 export const TopBar = ({ streak = 0, showBranding = true }: TopBarProps) => {
   const [showProfilePopup, setShowProfilePopup] = useState(false);
+  const router = useRouter();
+  const { profile } = useAuth();
+
+  const handleLogoClick = () => {
+    router.push("/feed");
+    router.refresh();
+  };
+
+  const avatarUrl = profile?.avatar_url;
 
   return (
     <>
@@ -20,9 +31,13 @@ export const TopBar = ({ streak = 0, showBranding = true }: TopBarProps) => {
           <div className="flex-1" />
           
           {showBranding && (
-            <h1 className="absolute left-1/2 -translate-x-1/2 text-xl font-bold tracking-tight" style={{ fontFamily: 'Times New Roman, serif' }}>
+            <button 
+              onClick={handleLogoClick}
+              className="absolute left-1/2 -translate-x-1/2 text-xl font-bold tracking-tight hover:opacity-70 transition-opacity" 
+              style={{ fontFamily: 'Times New Roman, serif' }}
+            >
               PRONIA
-            </h1>
+            </button>
           )}
           
           <div className="flex items-center gap-3">
@@ -36,8 +51,12 @@ export const TopBar = ({ streak = 0, showBranding = true }: TopBarProps) => {
               className="rounded-full h-9 w-9"
               onClick={() => setShowProfilePopup(true)}
             >
-              <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center">
-                <User className="h-5 w-5" />
+              <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center overflow-hidden">
+                {avatarUrl ? (
+                  <img src={avatarUrl} alt="Profile" className="h-full w-full object-cover" />
+                ) : (
+                  <User className="h-5 w-5" />
+                )}
               </div>
             </Button>
           </div>
