@@ -5,8 +5,6 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { PaywallModal } from "@/components/PaywallModal";
-import { usePremium } from "@/contexts/PremiumContext";
 import { usePractice } from "@/contexts/PracticeContext";
 import { 
   Play, 
@@ -14,14 +12,14 @@ import {
   Check, 
   Mic, 
   MicOff, 
-  Lock, 
+  Video,
+  VideoOff,
   Clock,
   Pause
 } from "lucide-react";
 import { useState, useEffect, useRef, useCallback } from "react";
 
 export default function Record() {
-  const { isPremium, isTrialActive, trialDaysRemaining, hasUsedTrial, startTrial, openPaywall, isPaywallOpen, closePaywall, upgradeToPremium } = usePremium();
   const { addSession, sessions } = usePractice();
   
   const [isTimerRunning, setIsTimerRunning] = useState(false);
@@ -29,10 +27,12 @@ export default function Record() {
   const [isPaused, setIsPaused] = useState(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   
-  const [isRecording, setIsRecording] = useState(false);
+  const [isAudioRecording, setIsAudioRecording] = useState(false);
+  const [isVideoRecording, setIsVideoRecording] = useState(false);
   const [permissionDenied, setPermissionDenied] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const audioChunksRef = useRef<Blob[]>([]);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const chunksRef = useRef<Blob[]>([]);
   
   const [showSaveForm, setShowSaveForm] = useState(false);
   const [practiceData, setPracticeData] = useState({
@@ -40,8 +40,6 @@ export default function Record() {
     composer: "",
     notes: "",
   });
-
-  const canRecord = isPremium || isTrialActive;
 
   const formatTime = (seconds: number) => {
     const hrs = Math.floor(seconds / 3600);
@@ -72,49 +70,63 @@ export default function Record() {
     };
   }, [isTimerRunning, isPaused]);
 
-  const requestMicPermission = useCallback(async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      setPermissionDenied(false);
-      stream.getTracks().forEach(track => track.stop());
-      return true;
-    } catch {
-      setPermissionDenied(true);
-      return false;
-    }
-  }, []);
-
-  const startRecording = async () => {
-    if (!canRecord) {
-      openPaywall();
-      return;
-    }
-
-    const hasPerms = await requestMicPermission();
-    if (!hasPerms) return;
-
+  const startAudioRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const mediaRecorder = new MediaRecorder(stream);
       mediaRecorderRef.current = mediaRecorder;
-      audioChunksRef.current = [];
+      chunksRef.current = [];
 
       mediaRecorder.ondataavailable = (event) => {
-        audioChunksRef.current.push(event.data);
+        chunksRef.current.push(event.data);
       };
 
       mediaRecorder.start();
-      setIsRecording(true);
+      setIsAudioRecording(true);
+      setPermissionDenied(false);
     } catch (err) {
-      console.error("Failed to start recording:", err);
+      console.error("Failed to start audio recording:", err);
+      setPermissionDenied(true);
+    }
+  };
+
+  const startVideoRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        videoRef.current.play();
+      }
+
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+      chunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (event) => {
+        chunksRef.current.push(event.data);
+      };
+
+      mediaRecorder.start();
+      setIsVideoRecording(true);
+      setPermissionDenied(false);
+    } catch (err) {
+      console.error("Failed to start video recording:", err);
+      setPermissionDenied(true);
     }
   };
 
   const stopRecording = () => {
-    if (mediaRecorderRef.current && isRecording) {
+    if (mediaRecorderRef.current) {
       mediaRecorderRef.current.stop();
       mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
-      setIsRecording(false);
+      
+      if (videoRef.current) {
+        videoRef.current.srcObject = null;
+      }
+      
+      setIsAudioRecording(false);
+      setIsVideoRecording(false);
     }
   };
 
@@ -155,48 +167,28 @@ export default function Record() {
     setPracticeData({ piece: "", composer: "", notes: "" });
   };
 
-  const handleStartTrial = () => {
-    startTrial();
-    closePaywall();
-  };
-
   const recentSessions = sessions.slice(0, 5);
+  const isRecording = isAudioRecording || isVideoRecording;
 
   return (
-    <Layout streak={7} showBranding={true}>
-      <PaywallModal
-        isOpen={isPaywallOpen}
-        onClose={closePaywall}
-        onStartTrial={handleStartTrial}
-        onSubscribe={upgradeToPremium}
-        hasUsedTrial={hasUsedTrial}
-      />
-      
+    <Layout streak={0}>
       <div className="max-w-2xl mx-auto px-4 py-6">
-        {isTrialActive && !isPremium && (
-          <div className="mb-4 p-3 bg-gradient-to-r from-orange-50 to-amber-50 border border-orange-200 rounded-xl">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Clock className="h-4 w-4 text-orange-600" />
-                <span className="text-sm font-medium text-orange-800">
-                  Trial: {trialDaysRemaining} day{trialDaysRemaining !== 1 ? "s" : ""} remaining
-                </span>
-              </div>
-              <Button 
-                size="sm" 
-                variant="ghost" 
-                className="text-orange-600 hover:text-orange-700 hover:bg-orange-100 h-7 text-xs"
-                onClick={openPaywall}
-              >
-                Upgrade
-              </Button>
-            </div>
-          </div>
-        )}
-
         {!showSaveForm ? (
           <>
             <Card className="p-8 mb-6 text-center">
+              {/* Video Preview */}
+              {isVideoRecording && (
+                <div className="mb-6 rounded-xl overflow-hidden bg-black aspect-video">
+                  <video 
+                    ref={videoRef} 
+                    autoPlay 
+                    muted 
+                    playsInline
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              )}
+
               <div className="mb-8">
                 <p className="text-6xl font-mono font-bold tracking-tight mb-2">
                   {formatTime(elapsedTime)}
@@ -205,7 +197,9 @@ export default function Record() {
                   {isTimerRunning 
                     ? isPaused 
                       ? "Paused" 
-                      : "Practice in progress..."
+                      : isRecording
+                        ? "Recording..."
+                        : "Practice in progress..."
                     : "Ready to practice"
                   }
                 </p>
@@ -255,75 +249,58 @@ export default function Record() {
               </div>
             </Card>
 
-            <Card className="p-6 mb-6">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  <div className={`h-10 w-10 rounded-full flex items-center justify-center ${
-                    isRecording 
-                      ? "bg-red-100" 
-                      : canRecord 
-                        ? "bg-muted" 
-                        : "bg-gray-100"
-                  }`}>
-                    {isRecording ? (
-                      <Mic className="h-5 w-5 text-red-600 animate-pulse" />
-                    ) : canRecord ? (
-                      <Mic className="h-5 w-5" />
+            {/* Recording Options */}
+            {isTimerRunning && (
+              <Card className="p-6 mb-6">
+                <h3 className="font-semibold mb-4">Recording Options</h3>
+                <div className="flex gap-3">
+                  <Button
+                    variant={isAudioRecording ? "destructive" : "outline"}
+                    className="flex-1"
+                    onClick={isAudioRecording ? stopRecording : startAudioRecording}
+                    disabled={isVideoRecording}
+                  >
+                    {isAudioRecording ? (
+                      <>
+                        <MicOff className="mr-2 h-4 w-4" />
+                        Stop Audio
+                      </>
                     ) : (
-                      <Lock className="h-5 w-5 text-gray-400" />
+                      <>
+                        <Mic className="mr-2 h-4 w-4" />
+                        Record Audio
+                      </>
                     )}
-                  </div>
-                  <div>
-                    <h3 className="font-semibold">Record Practice</h3>
-                    <p className="text-xs text-muted-foreground">
-                      {canRecord 
-                        ? "Capture audio of your session" 
-                        : "Premium feature"
-                      }
+                  </Button>
+                  <Button
+                    variant={isVideoRecording ? "destructive" : "outline"}
+                    className="flex-1"
+                    onClick={isVideoRecording ? stopRecording : startVideoRecording}
+                    disabled={isAudioRecording}
+                  >
+                    {isVideoRecording ? (
+                      <>
+                        <VideoOff className="mr-2 h-4 w-4" />
+                        Stop Video
+                      </>
+                    ) : (
+                      <>
+                        <Video className="mr-2 h-4 w-4" />
+                        Record Video
+                      </>
+                    )}
+                  </Button>
+                </div>
+
+                {permissionDenied && (
+                  <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                    <p className="text-sm text-red-700">
+                      Camera/microphone access denied. Please enable it in your browser settings.
                     </p>
                   </div>
-                </div>
-                
-                {!canRecord ? (
-                  <Button 
-                    size="sm" 
-                    className="bg-gradient-to-r from-orange-500 to-amber-500 text-white"
-                    onClick={openPaywall}
-                  >
-                    {hasUsedTrial ? "Upgrade" : "Try Free"}
-                  </Button>
-                ) : isTimerRunning ? (
-                  <Button
-                    size="sm"
-                    variant={isRecording ? "destructive" : "default"}
-                    onClick={isRecording ? stopRecording : startRecording}
-                    disabled={permissionDenied}
-                  >
-                    {isRecording ? (
-                      <>
-                        <MicOff className="mr-1 h-4 w-4" />
-                        Stop
-                      </>
-                    ) : (
-                      <>
-                        <Mic className="mr-1 h-4 w-4" />
-                        Record
-                      </>
-                    )}
-                  </Button>
-                ) : (
-                  <span className="text-xs text-muted-foreground">Start practice first</span>
                 )}
-              </div>
-
-              {permissionDenied && (
-                <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-                  <p className="text-sm text-red-700">
-                    Microphone access denied. Please enable it in your browser settings.
-                  </p>
-                </div>
-              )}
-            </Card>
+              </Card>
+            )}
 
             <Card className="p-6">
               <h2 className="text-lg font-semibold mb-4">Recent Practice Sessions</h2>
@@ -423,4 +400,3 @@ export default function Record() {
     </Layout>
   );
 }
-

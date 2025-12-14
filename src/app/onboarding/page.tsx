@@ -120,9 +120,22 @@ export default function Onboarding() {
   // Profile form
   const [name, setName] = useState("");
   const [username, setUsername] = useState("");
+  const [profilePic, setProfilePic] = useState<string | null>(null);
   const [selectedInstruments, setSelectedInstruments] = useState<string[]>([]);
+  const [yearsPlaying, setYearsPlaying] = useState<string>("");
   const [experienceLevel, setExperienceLevel] = useState<string>("");
   const [selectedPieces, setSelectedPieces] = useState<number[]>([]);
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setProfilePic(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   // If already logged in with profile, redirect
   useEffect(() => {
@@ -182,7 +195,7 @@ export default function Onboarding() {
   };
 
   const handleNext = async () => {
-    if (step < 4) {
+    if (step < 5) {
       setStep(step + 1);
     } else {
       // Save profile and complete onboarding
@@ -191,6 +204,7 @@ export default function Onboarding() {
         await updateProfile({
           name,
           username,
+          avatar_url: profilePic,
           instruments: selectedInstruments,
           experience_level: experienceLevel,
         });
@@ -210,10 +224,12 @@ export default function Onboarding() {
       case 1:
         return name.trim() && username.trim();
       case 2:
-        return selectedInstruments.length > 0;
+        return true; // Profile pic is optional
       case 3:
-        return selectedPieces.length === 3;
+        return selectedInstruments.length > 0 && yearsPlaying;
       case 4:
+        return selectedPieces.length === 3;
+      case 5:
         return true;
       default:
         return false;
@@ -369,15 +385,63 @@ export default function Onboarding() {
             </div>
           )}
 
-          {/* Step 2: Instruments */}
+          {/* Step 2: Profile Picture */}
           {step === 2 && (
             <div className="space-y-4">
-              <h2 className="text-xl font-semibold text-center mb-2 text-black">Pick your instruments</h2>
+              <h2 className="text-xl font-semibold text-center mb-2 text-black">Add a profile picture</h2>
               <p className="text-sm text-gray-500 text-center mb-6">
+                Help others recognize you (optional)
+              </p>
+              
+              <div className="flex flex-col items-center">
+                <div className="relative group">
+                  <div className="h-32 w-32 rounded-full bg-gray-100 overflow-hidden flex items-center justify-center border-2 border-dashed border-gray-300">
+                    {profilePic ? (
+                      <img src={profilePic} alt="Profile" className="h-full w-full object-cover" />
+                    ) : (
+                      <User className="h-16 w-16 text-gray-400" />
+                    )}
+                  </div>
+                  <label className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+                    <span className="text-white text-sm font-medium">Upload</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageChange}
+                      className="hidden"
+                    />
+                  </label>
+                </div>
+                <label className="mt-4 px-4 py-2 bg-gray-100 rounded-lg text-sm font-medium cursor-pointer hover:bg-gray-200 transition-colors">
+                  Choose Photo
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageChange}
+                    className="hidden"
+                  />
+                </label>
+                {profilePic && (
+                  <button 
+                    onClick={() => setProfilePic(null)}
+                    className="mt-2 text-sm text-gray-500 hover:text-gray-700"
+                  >
+                    Remove
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Step 3: Instruments + Years */}
+          {step === 3 && (
+            <div className="space-y-4">
+              <h2 className="text-xl font-semibold text-center mb-2 text-black">Pick your instruments</h2>
+              <p className="text-sm text-gray-500 text-center mb-4">
                 Select up to 3 instruments you play
               </p>
               
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-3 gap-3 mb-6">
                 {instruments.map((instrument) => {
                   const Icon = instrument.Icon;
                   const isSelected = selectedInstruments.includes(instrument.id);
@@ -397,11 +461,32 @@ export default function Onboarding() {
                   );
                 })}
               </div>
+
+              {selectedInstruments.length > 0 && (
+                <div className="pt-4 border-t border-gray-200">
+                  <label className="text-sm font-medium mb-3 block">How long have you been playing?</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {["Less than 1 year", "1-3 years", "3-5 years", "5-10 years", "10+ years"].map((option) => (
+                      <button
+                        key={option}
+                        onClick={() => setYearsPlaying(option)}
+                        className={`p-3 rounded-lg border text-sm transition-colors ${
+                          yearsPlaying === option
+                            ? "border-black bg-gray-100 font-medium"
+                            : "border-gray-200 hover:border-gray-400"
+                        }`}
+                      >
+                        {option}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
-          {/* Step 3: Pieces */}
-          {step === 3 && (
+          {/* Step 4: Pieces */}
+          {step === 4 && (
             <div className="space-y-4">
               <h2 className="text-xl font-semibold text-center mb-2 text-black">Pick 3 pieces</h2>
               <p className="text-sm text-gray-500 text-center mb-4">
@@ -444,12 +529,16 @@ export default function Onboarding() {
             </div>
           )}
 
-          {/* Step 4: Complete */}
-          {step === 4 && (
+          {/* Step 5: Complete */}
+          {step === 5 && (
             <div className="space-y-4 text-center">
               <div className="flex justify-center mb-4">
-                <div className="h-24 w-24 rounded-full bg-gray-100 flex items-center justify-center">
-                  <User className="h-12 w-12 text-gray-400" />
+                <div className="h-24 w-24 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden">
+                  {profilePic ? (
+                    <img src={profilePic} alt="Profile" className="h-full w-full object-cover" />
+                  ) : (
+                    <User className="h-12 w-12 text-gray-400" />
+                  )}
                 </div>
               </div>
               
@@ -480,9 +569,11 @@ export default function Onboarding() {
                 >
                   {isSaving ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : step === 4 ? (
+                  ) : step === 5 ? (
                     "Get Started"
-                  ) : step === 3 && selectedPieces.length < 3 ? (
+                  ) : step === 2 ? (
+                    profilePic ? "Next" : "Skip"
+                  ) : step === 4 && selectedPieces.length < 3 ? (
                     `Selected ${selectedPieces.length}/3`
                   ) : (
                     "Next"
@@ -491,7 +582,7 @@ export default function Onboarding() {
               </div>
 
               <div className="flex justify-center gap-2 mt-6">
-                {[1, 2, 3, 4].map((i) => (
+                {[1, 2, 3, 4, 5].map((i) => (
                   <div
                     key={i}
                     className={`h-1.5 w-8 rounded-full transition-colors ${
