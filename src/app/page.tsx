@@ -3,7 +3,6 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
-import { Loader2 } from "lucide-react";
 import Link from "next/link";
 
 export default function LandingPage() {
@@ -17,19 +16,12 @@ export default function LandingPage() {
     }
   }, [user, isLoading, router]);
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-black/30" />
-      </div>
-    );
-  }
-
-  // If logged in, show nothing while redirecting
-  if (user) {
+  // If logged in and done loading, show nothing while redirecting
+  if (user && !isLoading) {
     return null;
   }
 
+  // Always show the landing page - don't wait for auth
   return (
     <div className="min-h-screen bg-white text-black">
       {/* Header */}

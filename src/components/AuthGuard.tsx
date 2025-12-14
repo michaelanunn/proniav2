@@ -25,7 +25,12 @@ export const AuthGuard = ({ children }: AuthGuardProps) => {
     }
   }, [user, isLoading, isPublicPath, router]);
 
-  // Show loading spinner while checking auth
+  // For public paths, always render immediately - no loading spinner
+  if (isPublicPath) {
+    return <>{children}</>;
+  }
+
+  // For protected paths, show loading spinner while checking auth
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -34,8 +39,8 @@ export const AuthGuard = ({ children }: AuthGuardProps) => {
     );
   }
 
-  // If not logged in and on protected path, don't render children
-  if (!user && !isPublicPath) {
+  // If not logged in and on protected path, show loader while redirecting
+  if (!user) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -47,4 +52,3 @@ export const AuthGuard = ({ children }: AuthGuardProps) => {
 };
 
 export default AuthGuard;
-
