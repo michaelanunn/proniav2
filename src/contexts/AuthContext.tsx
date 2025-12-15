@@ -59,20 +59,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Supabase client (client-side) if env present
   const hasSupabase = !!process.env.NEXT_PUBLIC_SUPABASE_URL && !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   const supabase: SupabaseClient | null = hasSupabase
     ? createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!)
     : null;
 
-  // Initialize auth state: Supabase if configured, otherwise localStorage shim
   useEffect(() => {
     let mounted = true;
 
     const init = async () => {
       if (hasSupabase && supabase) {
         setIsLoading(true);
-        // Get current auth user
         try {
           const { data } = await supabase.auth.getUser();
           const currentUser = data.user;
@@ -84,13 +81,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             };
             setUser(userObj);
 
-            // Fetch profile from DB
             const { data: profileData } = await supabase.from('profiles').select('*').eq('id', currentUser.id).single();
             if (profileData && mounted) {
               setProfile(profileData as Profile);
             }
           } else if (mounted) {
-            // No supabase user -> leave null
             setUser(null);
             setProfile(null);
           }
@@ -100,7 +95,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setIsLoading(false);
         }
 
-        // Subscribe to auth changes
         const { data: listener } = supabase.auth.onAuthStateChange(async (event, session) => {
           if (!mounted) return;
           if (session?.user) {
@@ -128,7 +122,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           listener?.subscription?.unsubscribe();
         };
       } else {
-        // Fallback to localStorage shim
         try {
           const savedUser = localStorage.getItem('pronia-user');
           const savedProfile = localStorage.getItem('pronia-profile');
@@ -150,7 +143,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       alert('Supabase not configured. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY.');
       return;
     }
-    // Redirect to Google OAuth
     await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.origin } });
   };
 
@@ -162,7 +154,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (u) {
         const userObj: User = { id: u.id, email: u.email || '', user_metadata: (u.user_metadata as any) || {} };
         setUser(userObj);
-        // Fetch profile
         const { data: profileData } = await supabase.from('profiles').select('*').eq('id', u.id).single();
         if (profileData) {
           setProfile(profileData as Profile);
@@ -173,7 +164,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
 
-    // Fallback: localStorage shim
     const users = JSON.parse(localStorage.getItem("pronia-users") || "{}");
     const userData = users[email];
     if (!userData) throw new Error("No account found with this email. Please sign up first.");
@@ -201,18 +191,27 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const signUpWithEmail = async (email: string, password: string, name: string) => {
-  if (hasSupabase && supabase) {
-    // Sign up via Supabase
-    const { data, error } = await supabase.auth.signUp({ 
-      email, 
-      password, 
-      options: { data: { name } } 
-    });
-    
-    if (error) throw error;
-    const u = data.user;
-    
-    if (u) {
+    if (hasSupabase && supabase) {
+      const { data, error } = await supabase.auth.signUp({ 
+        email, 
+        password, 
+        options: { data: { name } } 
+      });
+      
+      if (error) {
+        console.error('Signup error:', error);
+        throw error;
+      }
+      
+      const u = data.user;
+      
+      if (!u) {
+        throw new Error('User registration failed: no user returned from Supabase.');
+      }
+
+      console.log('User created:', u.id);
+      await new Promise(resolve => setTimeout(resolve, 100));
+
       const username = (email.split('@')[0] || 'user') + '_' + u.id.slice(0, 6);
       const profileRow = {
         id: u.id,
@@ -240,27 +239,40 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       };
       
       try {
-        const { error: upsertError } = await supabase.from('profiles').upsert(profileRow);
-        if (upsertError) {
-          console.error('Profile creation error:', upsertError);
-          throw new Error(`Failed to create profile: ${upsertError.message}`);
+        console.log('Attempting to create profile for user:', u.id);
+        
+        const { data: insertedProfile, error: insertError } = await supabase
+          .from('profiles')
+          .insert(profileRow)
+          .select()
+          .single();
+        
+        if (insertError) {
+          console.error('Profile insert error:', insertError);
+          throw new Error(`Failed to create profile: ${insertError.message}`);
         }
         
-        // Set the profile in state
-        setProfile(profileRow as Profile);
-        localStorage.setItem('pronia-profile', JSON.stringify(profileRow));
+        console.log('Profile created successfully:', insertedProfile);
+        
+        setProfile(insertedProfile as Profile);
+        localStorage.setItem('pronia-profile', JSON.stringify(insertedProfile));
+        
+        const userObj: User = { 
+          id: u.id, 
+          email: u.email || '', 
+          user_metadata: { name, username } 
+        };
+        setUser(userObj);
+        localStorage.setItem('pronia-user', JSON.stringify(userObj));
+        
       } catch (err: any) {
-        console.error('Profile upsert failed:', err);
+        console.error('Profile creation failed:', err);
         throw new Error(`Failed to create user profile: ${err.message}`);
       }
-    } else {
-      throw new Error('User registration failed: no user returned from Supabase.');
+      
+      return;
     }
-    return;
-  }
 
-
-    // Fallback localStorage shim
     const users = JSON.parse(localStorage.getItem("pronia-users") || "{}");
     if (users[email]) throw new Error("An account with this email already exists. Please log in.");
     const id = `user_${Date.now()}`;
@@ -268,8 +280,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     users[email] = { id, email, password, name, username, bio: "", avatar_url: null, instruments: [], experience_level: "", created_at: new Date().toISOString() };
     localStorage.setItem("pronia-users", JSON.stringify(users));
     const user: User = { id, email, user_metadata: { name, username } };
-    const profile: Profile = { id, email, name, username, bio: "", avatar_url: null, instruments: [], experience_level: "", followers_count: 0, following_count: 0, is_premium: false };
-    setUser(user); setProfile(profile); localStorage.setItem("pronia-user", JSON.stringify(user)); localStorage.setItem("pronia-profile", JSON.stringify(profile));
+    const profile: Profile = { 
+      id, 
+      email, 
+      name, 
+      username, 
+      bio: "", 
+      avatar_url: null, 
+      instruments: [], 
+      experience_level: "", 
+      followers_count: 0, 
+      following_count: 0, 
+      is_premium: false 
+    };      
+    setUser(user); 
+    setProfile(profile); 
+    localStorage.setItem("pronia-user", JSON.stringify(user)); 
+    localStorage.setItem("pronia-profile", JSON.stringify(profile));
   };
 
   const signOut = async () => {
@@ -293,7 +320,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       console.error("Failed to save profile to localStorage:", err);
     }
 
-    // If Supabase configured, persist to DB
     if (hasSupabase && supabase) {
       try {
         const payload: any = {};
@@ -309,7 +335,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
     }
 
-    // Also update local users store if present
     try {
       const users = JSON.parse(localStorage.getItem("pronia-users") || "{}");
       if (users[user.email]) {
@@ -320,8 +345,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       // ignore
     }
 
-    // Keep the in-memory `user` metadata in sync so components reading
-    // `user.user_metadata` reflect changes immediately.
     try {
       const updatedUser = {
         ...user,
@@ -334,7 +357,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       };
       setUser(updatedUser);
       localStorage.setItem("pronia-user", JSON.stringify(updatedUser));
-      // Also update Supabase user metadata if available
       if (hasSupabase && supabase) {
         try {
           await supabase.auth.updateUser({ data: { name: updatedProfile.name, username: updatedProfile.username } as any });
