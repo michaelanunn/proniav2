@@ -233,7 +233,6 @@ export default function Profile() {
                 </Button>
               </div>
             </div>
-      </Layout>
             <div className="grid grid-cols-3 gap-4 text-center py-6">
               <div>
                 <p className="text-2xl font-bold text-black">{sessions.length}</p>
