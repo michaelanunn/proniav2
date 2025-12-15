@@ -15,16 +15,29 @@ interface User {
 
 interface Profile {
   id: string;
-  email: string;
+  email?: string;
   name: string;
   username: string;
   bio: string;
   avatar_url: string | null;
   instruments: string[];
+  years_playing?: string;
   experience_level: string;
-  followers_count: number;
-  following_count: number;
-  is_premium: boolean;
+  followers_count?: number;
+  following_count?: number;
+  total_practice_seconds?: number;
+  current_streak?: number;
+  longest_streak?: number;
+  last_practice_date?: string | null;
+  is_premium?: boolean;
+  stripe_customer_id?: string | null;
+  stripe_subscription_id?: string | null;
+  trial_start_date?: string | null;
+  trial_end_date?: string | null;
+  subscription_status?: string;
+  is_private?: boolean;
+  created_at?: string;
+  updated_at?: string;
 }
 
 interface AuthContextType {
@@ -188,42 +201,64 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const signUpWithEmail = async (email: string, password: string, name: string) => {
-    if (hasSupabase && supabase) {
-      // Sign up via Supabase (this will send confirmation email if enabled)
-      const { data, error } = await supabase.auth.signUp({ email, password, options: { data: { name } } });
-      if (error) throw error;
-      const u = data.user;
-      // Create initial profile row (if using DB) - safe to upsert
-      if (u) {
-        const username = (email.split('@')[0] || 'user') + '_' + u.id.slice(0, 6);
-        const profileRow = {
-          id: u.id,
-          email,
-          name,
-          username,
-          bio: '',
-          avatar_url: null,
-          instruments: [],
-          experience_level: '',
-          followers_count: 0,
-          following_count: 0,
-          is_premium: false,
-        };
-        try {
-          const { error: upsertError } = await supabase.from('profiles').upsert(profileRow);
-          if (upsertError) {
-            console.error('Failed to upsert profile row:', upsertError);
-            throw new Error('Failed to create user profile. Please try again.');
-          }
-        } catch (err) {
-          console.error('Failed to upsert profile row:', err);
-          throw new Error('Failed to create user profile. Please try again.');
+  if (hasSupabase && supabase) {
+    // Sign up via Supabase
+    const { data, error } = await supabase.auth.signUp({ 
+      email, 
+      password, 
+      options: { data: { name } } 
+    });
+    
+    if (error) throw error;
+    const u = data.user;
+    
+    if (u) {
+      const username = (email.split('@')[0] || 'user') + '_' + u.id.slice(0, 6);
+      const profileRow = {
+        id: u.id,
+        email: email,
+        name: name,
+        username: username,
+        bio: '',
+        avatar_url: null,
+        instruments: [],
+        years_playing: '',
+        experience_level: '',
+        followers_count: 0,
+        following_count: 0,
+        total_practice_seconds: 0,
+        current_streak: 0,
+        longest_streak: 0,
+        last_practice_date: null,
+        is_premium: false,
+        stripe_customer_id: null,
+        stripe_subscription_id: null,
+        trial_start_date: null,
+        trial_end_date: null,
+        subscription_status: 'free',
+        is_private: false,
+      };
+      
+      try {
+        const { error: upsertError } = await supabase.from('profiles').upsert(profileRow);
+        if (upsertError) {
+          console.error('Profile creation error:', upsertError);
+          throw new Error(`Failed to create profile: ${upsertError.message}`);
         }
-      } else {
-        throw new Error('User registration failed: no user returned from Supabase.');
+        
+        // Set the profile in state
+        setProfile(profileRow as Profile);
+        localStorage.setItem('pronia-profile', JSON.stringify(profileRow));
+      } catch (err: any) {
+        console.error('Profile upsert failed:', err);
+        throw new Error(`Failed to create user profile: ${err.message}`);
       }
-      return;
+    } else {
+      throw new Error('User registration failed: no user returned from Supabase.');
     }
+    return;
+  }
+
 
     // Fallback localStorage shim
     const users = JSON.parse(localStorage.getItem("pronia-users") || "{}");
