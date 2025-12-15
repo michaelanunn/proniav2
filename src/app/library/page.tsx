@@ -4,7 +4,18 @@ import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Search, Play, Plus, X, Trash2, Folder, FolderPlus, Image } from "lucide-react";
+import { Search, Play, Plus, X, Trash2, Folder, FolderPlus, Image, Palette, Music } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent,
+} from "@/components/ui/dropdown-menu";
 import { useState, useEffect } from "react";
 import { AddPieceModal } from "@/components/AddPieceModal";
 import { usePractice } from "@/contexts/PracticeContext";
@@ -22,6 +33,7 @@ interface MusicFolder {
   id: string;
   name: string;
   imageUrl: string | null;
+  theme?: { type: "color" | "instrument" | "custom"; value: string } | null;
   createdAt: string;
 }
 
@@ -36,6 +48,7 @@ export default function Library() {
   const [isCreateFolderOpen, setIsCreateFolderOpen] = useState(false);
   const [newFolderName, setNewFolderName] = useState("");
   const [newFolderImage, setNewFolderImage] = useState<string | null>(null);
+  const [newFolderTheme, setNewFolderTheme] = useState<{ type: "color" | "instrument" | "custom"; value: string } | null>(null);
 
   const streak = sessions.length > 0 ? Math.min(sessions.length, 7) : 0;
 
@@ -49,11 +62,21 @@ export default function Library() {
 
   // Save to localStorage
   useEffect(() => {
-    localStorage.setItem("library-pieces", JSON.stringify(pieces));
+    try {
+      localStorage.setItem("library-pieces", JSON.stringify(pieces));
+    } catch (err) {
+      console.error("Failed to save library pieces:", err);
+      alert("Could not save library data — image may be too large. Try a smaller image.");
+    }
   }, [pieces]);
 
   useEffect(() => {
-    localStorage.setItem("library-folders", JSON.stringify(folders));
+    try {
+      localStorage.setItem("library-folders", JSON.stringify(folders));
+    } catch (err) {
+      console.error("Failed to save library folders:", err);
+      alert("Could not save folders — image may be too large. Try a smaller image.");
+    }
   }, [folders]);
 
   const handleAddPiece = (piece: { title: string; composer: string; era: string }) => {
@@ -88,11 +111,13 @@ export default function Library() {
       id: Date.now().toString(),
       name: newFolderName,
       imageUrl: newFolderImage,
+      theme: newFolderTheme,
       createdAt: new Date().toISOString(),
     };
     setFolders([...folders, newFolder]);
     setNewFolderName("");
     setNewFolderImage(null);
+    setNewFolderTheme(null);
     setIsCreateFolderOpen(false);
   };
 
@@ -102,12 +127,37 @@ export default function Library() {
     if (selectedFolder === folderId) setSelectedFolder(null);
   };
 
-  const handleFolderImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFolderImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => setNewFolderImage(reader.result as string);
-      reader.readAsDataURL(file);
+      try {
+        // Compress/resize client-side to avoid large base64 strings
+        const { compressImage } = await import('@/lib/image');
+        const dataUrl = await compressImage(file, 1024, 0.8, 300 * 1024);
+
+        // If Supabase configured, try server upload first
+        if (process.env.NEXT_PUBLIC_SUPABASE_URL) {
+          try {
+            const res = await fetch(dataUrl);
+            const blob = await res.blob();
+            const form = new FormData();
+            form.append('file', new File([blob], file.name, { type: blob.type }));
+            const upload = await fetch('/api/upload', { method: 'POST', body: form });
+            if (upload.ok) {
+              const json = await upload.json();
+              setNewFolderImage(json.url);
+              return;
+            }
+          } catch (err) {
+            console.warn('Server upload failed, falling back to data URL', err);
+          }
+        }
+
+        setNewFolderImage(dataUrl);
+      } catch (err) {
+        console.error('Image processing failed:', err);
+        alert('Failed to process image. Try a different file.');
+      }
     }
   };
 
@@ -137,15 +187,57 @@ export default function Library() {
         <div className="mb-6">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Folders</h2>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setIsCreateFolderOpen(true)}
-              className="text-gray-600 hover:text-black"
-            >
-              <FolderPlus className="h-4 w-4 mr-1" />
-              New Folder
-            </Button>
+            <div className="flex items-center gap-2">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm" className="text-gray-600 hover:text-black">
+                    <Palette className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuLabel>Folder Theme</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <div className="px-2 py-1">
+                    <label className="flex items-center gap-2">
+                      <input
+                        type="color"
+                        onChange={(e) => setNewFolderTheme({ type: "color", value: e.target.value })}
+                        value={(newFolderTheme && newFolderTheme.type === "color") ? newFolderTheme.value : "#ffffff"}
+                        className="w-8 h-8 p-0 border-0"
+                      />
+                      <span className="text-sm text-gray-700">Pick color</span>
+                    </label>
+                  </div>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuSub>
+                    <DropdownMenuSubTrigger>
+                      <Music className="mr-2 h-4 w-4" />
+                      Instrument Theme
+                    </DropdownMenuSubTrigger>
+                    <DropdownMenuSubContent>
+                      <DropdownMenuItem onSelect={() => setNewFolderTheme({ type: "instrument", value: "piano" })}>Piano</DropdownMenuItem>
+                      <DropdownMenuItem onSelect={() => setNewFolderTheme({ type: "instrument", value: "guitar" })}>Guitar</DropdownMenuItem>
+                      <DropdownMenuItem onSelect={() => setNewFolderTheme({ type: "instrument", value: "violin" })}>Violin</DropdownMenuItem>
+                      <DropdownMenuItem onSelect={() => setNewFolderTheme({ type: "instrument", value: "bass" })}>Bass</DropdownMenuItem>
+                    </DropdownMenuSubContent>
+                  </DropdownMenuSub>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onSelect={() => { setNewFolderTheme({ type: "custom", value: "" }); setIsCreateFolderOpen(true); }}>
+                    Upload custom image...
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsCreateFolderOpen(true)}
+                className="text-gray-600 hover:text-black"
+              >
+                <FolderPlus className="h-4 w-4 mr-1" />
+                New Folder
+              </Button>
+            </div>
           </div>
           <div className="flex gap-3 overflow-x-auto pb-2">
             <button
@@ -174,6 +266,19 @@ export default function Library() {
                 <div className="w-16 h-16 rounded-lg bg-gray-200 flex items-center justify-center overflow-hidden">
                   {folder.imageUrl ? (
                     <img src={folder.imageUrl} alt={folder.name} className="w-full h-full object-cover" />
+                  ) : folder.theme ? (
+                    folder.theme.type === 'color' ? (
+                      <div className="w-full h-full" style={{ background: folder.theme.value }} />
+                    ) : folder.theme.type === 'instrument' ? (
+                      <div className="w-full h-full flex items-center justify-center text-xl">
+                        {folder.theme.value === 'piano' && '🎹'}
+                        {folder.theme.value === 'guitar' && '🎸'}
+                        {folder.theme.value === 'violin' && '🎻'}
+                        {folder.theme.value === 'bass' && '🎻'}
+                      </div>
+                    ) : (
+                      <Folder className="h-8 w-8 text-gray-500" />
+                    )
                   ) : (
                     <Folder className="h-8 w-8 text-gray-500" />
                   )}
@@ -202,6 +307,19 @@ export default function Library() {
                   <div className="w-20 h-20 rounded-xl bg-gray-100 flex items-center justify-center overflow-hidden border-2 border-dashed border-gray-300">
                     {newFolderImage ? (
                       <img src={newFolderImage} alt="Preview" className="w-full h-full object-cover" />
+                    ) : newFolderTheme ? (
+                      newFolderTheme.type === 'color' ? (
+                        <div className="w-full h-full" style={{ background: newFolderTheme.value }} />
+                      ) : newFolderTheme.type === 'instrument' ? (
+                        <div className="w-full h-full flex items-center justify-center text-2xl">
+                          {newFolderTheme.value === 'piano' && '🎹'}
+                          {newFolderTheme.value === 'guitar' && '🎸'}
+                          {newFolderTheme.value === 'violin' && '🎻'}
+                          {newFolderTheme.value === 'bass' && '🎻'}
+                        </div>
+                      ) : (
+                        <Image className="h-8 w-8 text-gray-400" />
+                      )
                     ) : (
                       <Image className="h-8 w-8 text-gray-400" />
                     )}

@@ -57,10 +57,40 @@ export const FollowersModal = ({
         if (res.ok) {
           const data = await res.json();
           setUsers(data.users || []);
+        } else {
+          // Fallback: if API not configured (no supabase), read from localStorage
+          const saved = localStorage.getItem('pronia-users');
+          if (saved) {
+            const parsed = JSON.parse(saved);
+            const list = Object.values(parsed).filter((u: any) => u.id !== profile?.id).map((u: any) => ({
+              id: u.id,
+              name: u.name || '',
+              username: u.username || '',
+              avatar_url: u.avatar_url || null,
+              isFollowing: false,
+            }));
+            setUsers(list);
+          } else {
+            setUsers([]);
+          }
         }
       } catch (error) {
         console.error("Error fetching users:", error);
-        setUsers([]);
+        // Fallback to localStorage if fetch fails
+        const saved = localStorage.getItem('pronia-users');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          const list = Object.values(parsed).filter((u: any) => u.id !== profile?.id).map((u: any) => ({
+            id: u.id,
+            name: u.name || '',
+            username: u.username || '',
+            avatar_url: u.avatar_url || null,
+            isFollowing: false,
+          }));
+          setUsers(list);
+        } else {
+          setUsers([]);
+        }
       } finally {
         setIsLoading(false);
       }

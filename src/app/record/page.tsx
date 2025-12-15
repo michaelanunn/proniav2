@@ -347,7 +347,7 @@ export default function Record() {
                 </div>
 
                 <p className="text-sm text-gray-500 mt-3 text-center">
-                  Recording is optional. Your browser will ask for permission.
+                  Record to track and share your progress. Your browser will ask for permission.
                 </p>
               </Card>
             )}

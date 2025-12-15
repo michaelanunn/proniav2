@@ -40,13 +40,38 @@ export const EditProfileModal = ({
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const result = reader.result as string;
-        setPreviewImage(result);
-        setFormData((prev) => ({ ...prev, profilePic: result }));
-      };
-      reader.readAsDataURL(file);
+      (async () => {
+        try {
+          const { compressImage } = await import('@/lib/image');
+          const dataUrl = await compressImage(file, 1024, 0.8, 300 * 1024);
+
+          // If Supabase is configured, attempt server upload
+          if (process.env.NEXT_PUBLIC_SUPABASE_URL) {
+            try {
+              // convert dataUrl to blob
+              const res = await fetch(dataUrl);
+              const blob = await res.blob();
+              const form = new FormData();
+              form.append('file', new File([blob], file.name, { type: blob.type }));
+              const upload = await fetch('/api/upload', { method: 'POST', body: form });
+              if (upload.ok) {
+                const json = await upload.json();
+                setPreviewImage(json.url);
+                setFormData((prev) => ({ ...prev, profilePic: json.url }));
+                return;
+              }
+            } catch (err) {
+              console.warn('Server upload failed, falling back to data URL', err);
+            }
+          }
+
+          setPreviewImage(dataUrl);
+          setFormData((prev) => ({ ...prev, profilePic: dataUrl }));
+        } catch (err) {
+          console.error('Failed to process profile image:', err);
+          alert('Could not process image. Try a smaller file.');
+        }
+      })();
     }
   };
 

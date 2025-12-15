@@ -23,24 +23,19 @@ const PianoIcon = () => (
 
 const GuitarIcon = () => (
   <svg className="h-8 w-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-    <path d="M19 3l2 2-6 6-2-2 6-6z" />
-    <path d="M13 9l-1 1" />
-    <ellipse cx="9" cy="15" rx="5" ry="6" />
-    <circle cx="9" cy="15" r="1.5" />
-    <path d="M9 11v-1M9 20v1" />
+    <path d="M20.5 3.5c-.7-.7-2-1-3.5-.5-1.6.5-3.2 2-4 3-.8 1-1 2.7-.3 4.2L9 13l-3 3a1 1 0 00-.3.7v2c0 .4.3.8.7.8.2 0 .5 0 .7-.2l2.9-2.9 3-3 .8-3.7c1.4.6 2.8.4 3.8-.6 1-1 2.2-2.7 2.6-4.3.4-1.6 0-2.9-.2-3.1z" />
+    <circle cx="9.5" cy="12.5" r="1.6" fill="currentColor" />
+    <path d="M14 9l6-6" strokeLinecap="round" />
   </svg>
 );
 
 const ViolinIcon = () => (
   <svg className="h-8 w-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-    <path d="M12 2v3M10 5h4" />
-    <ellipse cx="12" cy="10" rx="3" ry="2" />
-    <ellipse cx="12" cy="17" rx="5" ry="4" />
-    <path d="M12 8v12" />
-    <circle cx="10" cy="16" r="0.5" fill="currentColor" />
-    <circle cx="14" cy="16" r="0.5" fill="currentColor" />
-    <path d="M7 14c-1 0-2 1-2 2s1 2 2 2" />
-    <path d="M17 14c1 0 2 1 2 2s-1 2-2 2" />
+    <path d="M18 2s-1.5 1.5-3 3c-.9.9-1 2-1 2s-1.2-.2-2.5.2c-1.3.4-2.5 1.8-3 3-1 2.4-.5 5 1.5 6.5 2 1.5 4.5 1.8 6 0 1.5-1.8 1.6-4.8.7-6.8-.5-1.3-1.7-2.6-3-3-.8-.3-1.6-.2-2.1 0" />
+    <path d="M9 7c.5-.5 1.5-1 3-1" strokeLinecap="round" />
+    <path d="M11.5 11.5c-.4.6-1.2 1.4-1.5 2" strokeLinecap="round" />
+    <path d="M14.5 12.5c.4.6 1.2 1.4 1.5 2" strokeLinecap="round" />
+    <path d="M12 3v3" strokeLinecap="round" />
   </svg>
 );
 
@@ -57,14 +52,11 @@ const DrumsIcon = () => (
 
 const BassIcon = () => (
   <svg className="h-8 w-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-    <path d="M12 2v4M10 4h4" />
-    <rect x="10" y="6" width="4" height="3" rx="1" />
-    <ellipse cx="12" cy="16" rx="6" ry="5" />
-    <path d="M12 11v10" />
-    <circle cx="10" cy="15" r="0.5" fill="currentColor" />
-    <circle cx="14" cy="15" r="0.5" fill="currentColor" />
-    <circle cx="10" cy="17" r="0.5" fill="currentColor" />
-    <circle cx="14" cy="17" r="0.5" fill="currentColor" />
+    <path d="M11 2l2 0.5v3.5" strokeLinecap="round" />
+    <path d="M8 7l8-1" strokeLinecap="round" />
+    <path d="M7 9c-1 2-1 5 2 7s6 1 7-1 1-4-1-6-6-3-8-0z" />
+    <circle cx="11.5" cy="12.5" r="1" fill="currentColor" />
+    <path d="M12 14v6" strokeLinecap="round" />
   </svg>
 );
 
@@ -129,11 +121,34 @@ export default function Onboarding() {
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setProfilePic(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+      (async () => {
+        try {
+          const { compressImage } = await import('@/lib/image');
+          const dataUrl = await compressImage(file, 1024, 0.8, 300 * 1024);
+
+          if (process.env.NEXT_PUBLIC_SUPABASE_URL) {
+            try {
+              const res = await fetch(dataUrl);
+              const blob = await res.blob();
+              const form = new FormData();
+              form.append('file', new File([blob], file.name, { type: blob.type }));
+              const upload = await fetch('/api/upload', { method: 'POST', body: form });
+              if (upload.ok) {
+                const json = await upload.json();
+                setProfilePic(json.url);
+                return;
+              }
+            } catch (err) {
+              console.warn('Server upload failed, falling back to data URL', err);
+            }
+          }
+
+          setProfilePic(dataUrl);
+        } catch (err) {
+          console.error('Failed to process onboarding image:', err);
+          alert('Could not process image. Try a smaller file.');
+        }
+      })();
     }
   };
 

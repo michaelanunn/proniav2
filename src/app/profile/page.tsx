@@ -97,105 +97,169 @@ export default function Profile() {
     return (
       <Layout streak={streak}>
         <div className="flex items-center justify-center py-20">
-          <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
-        </div>
-      </Layout>
-    );
-  }
-
-  if (!user || !profile) {
-    return null;
-  }
-
-  return (
-    <Layout streak={streak}>
-      <EditProfileModal
-        isOpen={isEditModalOpen}
-        onClose={() => setIsEditModalOpen(false)}
-        initialData={editData}
-        onSave={handleSaveProfile}
-      />
-      <FollowersModal
-        isOpen={isFollowersModalOpen}
-        onClose={() => setIsFollowersModalOpen(false)}
-        initialTab={followersModalTab}
-        followersCount={profile.followers_count?.toString() || "0"}
-        followingCount={profile.following_count?.toString() || "0"}
-      />
-
-      {/* Copied Toast */}
-      {showCopiedToast && (
-        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 animate-in fade-in slide-in-from-top-2 duration-300">
-          <div className="bg-black text-white px-4 py-2 rounded-full flex items-center gap-2 shadow-lg">
-            <Check className="h-4 w-4" />
-            <span className="text-sm font-medium">Profile link copied!</span>
-          </div>
-        </div>
-      )}
-
-      <div className="max-w-2xl mx-auto px-4 py-6">
-        <div className="flex justify-end items-center gap-2 mb-4">
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            onClick={handleShareProfile}
-            className="hover:bg-gray-100"
-          >
-            <Share2 className="h-5 w-5 text-black" />
-          </Button>
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            onClick={() => router.push("/settings")}
-            className="hover:bg-gray-100"
-          >
-            <Settings className="h-5 w-5 text-black" />
-          </Button>
-        </div>
-
-        {/* Private Profile Indicator */}
-        {isPrivate && (
-          <Alert className="mb-4 border-amber-200 bg-amber-50">
-            <Lock className="h-4 w-4 text-amber-600" />
-            <AlertDescription className="text-amber-800 font-medium">
-              Private Account - Only approved followers can see your posts
-            </AlertDescription>
-          </Alert>
-        )}
-
-        <div className="mb-6">
-          <div className="flex flex-col items-center text-center mb-4">
-            <div className="h-24 w-24 rounded-full bg-gray-100 flex items-center justify-center mb-3 overflow-hidden border-2 border-gray-200">
-              {profile.avatar_url ? (
-                <img
-                  src={profile.avatar_url}
-                  alt="Profile"
-                  className="h-full w-full object-cover"
-                />
-              ) : (
-                <User className="h-12 w-12 text-gray-400" />
-              )}
-            </div>
-            <h1 className="text-xl font-bold mb-1 text-black">{profile.name}</h1>
-            <p className="text-sm text-gray-500 mb-3">@{profile.username}</p>
-            {profile.bio && (
-              <p className="text-sm mb-4 px-4 text-gray-700">{profile.bio}</p>
-            )}
-            
-            {/* Instruments */}
-            {profile.instruments?.length > 0 && (
-              <div className="flex gap-2 mb-4">
-                {profile.instruments.map((instrument) => (
-                  <span
-                    key={instrument}
-                    className="px-3 py-1 bg-gray-100 rounded-full text-xs font-medium capitalize text-gray-700"
-                  >
-                    {instrument}
-                  </span>
-                ))}
+          <div className="max-w-2xl mx-auto px-4 py-6">
+            {/* Enclosed profile section */}
+            <div className="relative bg-white rounded-2xl shadow-lg border border-gray-200 p-6 mb-8 flex flex-col items-center">
+              <div className="absolute top-4 right-4 flex gap-2">
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  onClick={handleShareProfile}
+                  className="hover:bg-gray-100"
+                >
+                  <Share2 className="h-5 w-5 text-black" />
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  onClick={() => router.push("/settings")}
+                  className="hover:bg-gray-100"
+                >
+                  <Settings className="h-5 w-5 text-black" />
+                </Button>
               </div>
-            )}
-            
+
+              {/* Private Profile Indicator */}
+              {isPrivate && (
+                <Alert className="mb-4 border-amber-200 bg-amber-50">
+                  <Lock className="h-4 w-4 text-amber-600" />
+                  <AlertDescription className="text-amber-800 font-medium">
+                    Private Account - Only approved followers can see your posts
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              <div className="flex flex-col items-center text-center mb-2">
+                <div className="h-24 w-24 rounded-full bg-gray-100 flex items-center justify-center mb-3 overflow-hidden border-2 border-gray-200">
+                  {profile.avatar_url ? (
+                    <img
+                      src={profile.avatar_url}
+                      alt="Profile"
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <User className="h-12 w-12 text-gray-400" />
+                  )}
+                </div>
+                <h1 className="text-xl font-bold mb-1 text-black flex items-center gap-2 justify-center">
+                  {profile.name}
+                  {/* Instrument badge and label */}
+                  {profile.instruments?.length > 0 && (
+                    <span className="flex items-center gap-1 ml-2">
+                      {profile.instruments.slice(0,1).map((instrument) => {
+                        let icon = null;
+                        let label = "";
+                        switch (instrument.toLowerCase()) {
+                          case "piano":
+                            icon = <img src="/instruments/piano.svg" alt="piano" className="h-6 w-6 inline-block" />;
+                            label = "pianist";
+                            break;
+                          case "guitar":
+                            icon = <img src="/instruments/guitar.svg" alt="guitar" className="h-6 w-6 inline-block" />;
+                            label = "guitarist";
+                            break;
+                          case "violin":
+                            icon = <img src="/instruments/violin.svg" alt="violin" className="h-6 w-6 inline-block" />;
+                            label = "violinist";
+                            break;
+                          case "voice":
+                          case "vocal":
+                          case "singer":
+                            icon = <img src="/instruments/microphone.svg" alt="voice" className="h-6 w-6 inline-block" />;
+                            label = "vocalist";
+                            break;
+                          default:
+                            icon = <span className="inline-block h-6 w-6 bg-gray-200 rounded-full" />;
+                            label = instrument.toLowerCase() + " player";
+                        }
+                        return (
+                          <span key={instrument} className="flex items-center gap-1">
+                            {icon}
+                            <span className="text-xs text-gray-600 font-medium">({label})</span>
+                          </span>
+                        );
+                      })}
+                    </span>
+                  )}
+                </h1>
+                <p className="text-sm text-gray-500 mb-3">@{profile.username}</p>
+                {profile.bio && (
+                  <p className="text-sm mb-4 px-4 text-gray-700">{profile.bio}</p>
+                )}
+                {/* Instrument badges row */}
+                {profile.instruments?.length > 1 && (
+                  <div className="flex gap-2 mb-4 justify-center">
+                    {profile.instruments.slice(1).map((instrument) => {
+                      let icon = null;
+                      let label = "";
+                      switch (instrument.toLowerCase()) {
+                        case "piano":
+                          icon = <img src="/instruments/piano.svg" alt="piano" className="h-5 w-5 inline-block" />;
+                          label = "pianist";
+                          break;
+                        case "guitar":
+                          icon = <img src="/instruments/guitar.svg" alt="guitar" className="h-5 w-5 inline-block" />;
+                          label = "guitarist";
+                          break;
+                        case "violin":
+                          icon = <img src="/instruments/violin.svg" alt="violin" className="h-5 w-5 inline-block" />;
+                          label = "violinist";
+                          break;
+                        case "voice":
+                        case "vocal":
+                        case "singer":
+                          icon = <img src="/instruments/microphone.svg" alt="voice" className="h-5 w-5 inline-block" />;
+                          label = "vocalist";
+                          break;
+                        default:
+                          icon = <span className="inline-block h-5 w-5 bg-gray-200 rounded-full" />;
+                          label = instrument.toLowerCase() + " player";
+                      }
+                      return (
+                        <span key={instrument} className="flex items-center gap-1 px-2 py-1 bg-gray-100 rounded-full">
+                          {icon}
+                          <span className="text-xs text-gray-600 font-medium">{label}</span>
+                        </span>
+                      );
+                    })}
+                  </div>
+                )}
+                <Button 
+                  variant="outline" 
+                  className="w-full max-w-xs border-gray-300 text-black hover:bg-gray-100"
+                  onClick={() => setIsEditModalOpen(true)}
+                >
+                  Edit Profile
+                </Button>
+              </div>
+            </div>
+      </Layout>
+            <div className="grid grid-cols-3 gap-4 text-center py-6">
+              <div>
+                <p className="text-2xl font-bold text-black">{sessions.length}</p>
+                <p className="text-xs text-gray-500">Sessions</p>
+              </div>
+              <button
+                onClick={() => {
+                  setFollowersModalTab("followers");
+                  setIsFollowersModalOpen(true);
+                }}
+                className="hover:bg-gray-100 rounded-lg py-2 transition-colors"
+              >
+                <p className="text-2xl font-bold text-black">{profile.followers_count || 0}</p>
+                <p className="text-xs text-gray-500">Followers</p>
+              </button>
+              <button
+                onClick={() => {
+                  setFollowersModalTab("following");
+                  setIsFollowersModalOpen(true);
+                }}
+                className="hover:bg-gray-100 rounded-lg py-2 transition-colors"
+              >
+                <p className="text-2xl font-bold text-black">{profile.following_count || 0}</p>
+                <p className="text-xs text-gray-500">Following</p>
+              </button>
+            </div>
             <Button 
               variant="outline" 
               className="w-full max-w-xs border-gray-300 text-black hover:bg-gray-100"
