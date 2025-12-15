@@ -190,114 +190,125 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     localStorage.setItem("pronia-profile", JSON.stringify(profile));
   };
 
-  const signUpWithEmail = async (email: string, password: string, name: string) => {
-    if (hasSupabase && supabase) {
-      const { data, error } = await supabase.auth.signUp({ 
-        email, 
-        password, 
-        options: { data: { name } } 
-      });
-      
-      if (error) {
-        console.error('Signup error:', error);
-        throw error;
-      }
-      
-      const u = data.user;
-      
-      if (!u) {
-        throw new Error('User registration failed: no user returned from Supabase.');
-      }
 
-      console.log('User created:', u.id);
-      await new Promise(resolve => setTimeout(resolve, 100));
-
-      const username = (email.split('@')[0] || 'user') + '_' + u.id.slice(0, 6);
-      const profileRow = {
-        id: u.id,
-        email: email,
-        name: name,
-        username: username,
-        bio: '',
-        avatar_url: null,
-        instruments: [],
-        years_playing: '',
-        experience_level: '',
-        followers_count: 0,
-        following_count: 0,
-        total_practice_seconds: 0,
-        current_streak: 0,
-        longest_streak: 0,
-        last_practice_date: null,
-        is_premium: false,
-        stripe_customer_id: null,
-        stripe_subscription_id: null,
-        trial_start_date: null,
-        trial_end_date: null,
-        subscription_status: 'free',
-        is_private: false,
-      };
-      
-      try {
-        console.log('Attempting to create profile for user:', u.id);
-        
-        const { data: insertedProfile, error: insertError } = await supabase
-          .from('profiles')
-          .insert(profileRow)
-          .select()
-          .single();
-        
-        if (insertError) {
-          console.error('Profile insert error:', insertError);
-          throw new Error(`Failed to create profile: ${insertError.message}`);
-        }
-        
-        console.log('Profile created successfully:', insertedProfile);
-        
-        setProfile(insertedProfile as Profile);
-        localStorage.setItem('pronia-profile', JSON.stringify(insertedProfile));
-        
-        const userObj: User = { 
-          id: u.id, 
-          email: u.email || '', 
-          user_metadata: { name, username } 
-        };
-        setUser(userObj);
-        localStorage.setItem('pronia-user', JSON.stringify(userObj));
-        
-      } catch (err: any) {
-        console.error('Profile creation failed:', err);
-        throw new Error(`Failed to create user profile: ${err.message}`);
-      }
-      
-      return;
+const signUpWithEmail = async (email: string, password: string, name: string) => {
+  if (hasSupabase && supabase) {
+    const { data, error } = await supabase.auth.signUp({ 
+      email, 
+      password, 
+      options: { data: { name } } 
+    });
+    
+    if (error) {
+      console.error('Signup error:', error);
+      throw error;
+    }
+    
+    const u = data.user;
+    
+    if (!u) {
+      throw new Error('User registration failed: no user returned from Supabase.');
     }
 
-    const users = JSON.parse(localStorage.getItem("pronia-users") || "{}");
-    if (users[email]) throw new Error("An account with this email already exists. Please log in.");
-    const id = `user_${Date.now()}`;
-    const username = email.split("@")[0].toLowerCase().replace(/[^a-z0-9]/g, "") + "_" + id.slice(-4);
-    users[email] = { id, email, password, name, username, bio: "", avatar_url: null, instruments: [], experience_level: "", created_at: new Date().toISOString() };
-    localStorage.setItem("pronia-users", JSON.stringify(users));
-    const user: User = { id, email, user_metadata: { name, username } };
-    const profile: Profile = { 
-      id, 
-      email, 
-      name, 
-      username, 
-      bio: "", 
-      avatar_url: null, 
-      instruments: [], 
-      experience_level: "", 
-      followers_count: 0, 
-      following_count: 0, 
-      is_premium: false 
-    };      
-    setUser(user); 
-    setProfile(profile); 
-    localStorage.setItem("pronia-user", JSON.stringify(user)); 
-    localStorage.setItem("pronia-profile", JSON.stringify(profile));
+    console.log('User created:', u.id);
+    await new Promise(resolve => setTimeout(resolve, 100));
+
+    const username = (email.split('@')[0] || 'user') + '_' + u.id.slice(0, 6);
+    
+    try {
+      console.log('Attempting to create profile for user:', u.id);
+      
+      const { data: insertedProfile, error: insertError } = await supabase
+        .rpc('create_user_profile', {
+          user_id: u.id,
+          user_email: email,
+          user_name: name,
+          user_username: username
+        });
+      
+      if (insertError) {
+        console.error('Profile insert error:', insertError);
+        throw new Error(`Failed to create profile: ${insertError.message}`);
+      }
+      
+      console.log('Profile created successfully:', insertedProfile);
+      
+      setProfile(insertedProfile as Profile);
+      localStorage.setItem('pronia-profile', JSON.stringify(insertedProfile));
+      
+      const userObj: User = { 
+        id: u.id, 
+        email: u.email || '', 
+        user_metadata: { name, username } 
+      };
+      setUser(userObj);
+      localStorage.setItem('pronia-user', JSON.stringify(userObj));
+      
+    } catch (err: any) {
+      console.error('Profile creation failed:', err);
+      throw new Error(`Failed to create user profile: ${err.message}`);
+    }
+    
+    return;
+  }
+
+  // Fallback localStorage shim
+  const users = JSON.parse(localStorage.getItem("pronia-users") || "{}");
+  if (users[email]) throw new Error("An account with this email already exists. Please log in.");
+  const id = `user_${Date.now()}`;
+  const username = email.split("@")[0].toLowerCase().replace(/[^a-z0-9]/g, "") + "_" + id.slice(-4);
+  users[email] = { 
+    id, 
+    email, 
+    password, 
+    name, 
+    username, 
+    bio: "", 
+    avatar_url: null, 
+    instruments: [], 
+    years_playing: "",
+    experience_level: "", 
+    followers_count: 0,
+    following_count: 0,
+    total_practice_seconds: 0,
+    current_streak: 0,
+    longest_streak: 0,
+    is_premium: false,
+    stripe_customer_id: null,
+    stripe_subscription_id: null,
+    subscription_status: 'free',
+    is_private: false,
+    created_at: new Date().toISOString() 
   };
+  localStorage.setItem("pronia-users", JSON.stringify(users));
+  
+  const user: User = { id, email, user_metadata: { name, username } };
+  const profile: Profile = { 
+    id, 
+    email, 
+    name, 
+    username, 
+    bio: "", 
+    avatar_url: null, 
+    instruments: [], 
+    years_playing: "",
+    experience_level: "", 
+    followers_count: 0, 
+    following_count: 0,
+    total_practice_seconds: 0,
+    current_streak: 0,
+    longest_streak: 0,
+    is_premium: false,
+    stripe_customer_id: null,
+    stripe_subscription_id: null,
+    subscription_status: 'free',
+    is_private: false
+  };      
+  setUser(user); 
+  setProfile(profile); 
+  localStorage.setItem("pronia-user", JSON.stringify(user)); 
+  localStorage.setItem("pronia-profile", JSON.stringify(profile));
+};
 
   const signOut = async () => {
     if (hasSupabase && supabase) {
