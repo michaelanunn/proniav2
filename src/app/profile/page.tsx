@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
@@ -58,13 +58,13 @@ export default function Profile() {
     const hrs = Math.floor(seconds / 3600);
     const mins = Math.floor((seconds % 3600) / 60);
     if (hrs > 0) {
-      return ${hrs}h m;
+      return `${hrs}h ${mins}m`;
     }
-    return ${mins} minutes;
+    return `${mins} minutes`;
   };
 
   const handleShareProfile = async () => {
-    const profileUrl = ${window.location.origin}/user/;
+    const profileUrl = `${window.location.origin}/user/${profile?.username}`;
     try {
       await navigator.clipboard.writeText(profileUrl);
       setShowCopiedToast(true);
@@ -157,9 +157,9 @@ export default function Profile() {
         </div>
 
         <div className="flex gap-6 mb-6 border-b border-gray-200 justify-center">
-          <button className={pb-3 text-sm font-semibold transition-colors } onClick={() => setActiveTab("posts")}>Posts</button>
-          <button className={pb-3 text-sm font-semibold transition-colors } onClick={() => setActiveTab("logs")}>Logs</button>
-          <button className={pb-3 text-sm font-semibold transition-colors } onClick={() => setActiveTab("liked")}>Liked</button>
+          <button className={`pb-3 text-sm font-semibold transition-colors ${activeTab === "posts" ? "text-black border-b-2 border-black" : "text-gray-500 hover:text-gray-700"}`} onClick={() => setActiveTab("posts")}>Posts</button>
+          <button className={`pb-3 text-sm font-semibold transition-colors ${activeTab === "logs" ? "text-black border-b-2 border-black" : "text-gray-500 hover:text-gray-700"}`} onClick={() => setActiveTab("logs")}>Logs</button>
+          <button className={`pb-3 text-sm font-semibold transition-colors ${activeTab === "liked" ? "text-black border-b-2 border-black" : "text-gray-500 hover:text-gray-700"}`} onClick={() => setActiveTab("liked")}>Liked</button>
         </div>
 
         {activeTab === "posts" && (
@@ -183,7 +183,7 @@ export default function Profile() {
                 <div key={session.id} className="p-4 border border-gray-200 rounded-lg bg-white">
                   <h3 className="font-semibold mb-1 text-black">{session.piece || "Practice Session"}</h3>
                   <p className="text-sm text-gray-500">
-                    {new Date(session.date).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })} � {formatDuration(session.duration)}
+                    {new Date(session.date).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })} • {formatDuration(session.duration)}
                   </p>
                   {session.notes && <p className="text-sm mt-2 text-gray-600">{session.notes}</p>}
                 </div>
