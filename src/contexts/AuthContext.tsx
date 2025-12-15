@@ -210,10 +210,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           is_premium: false,
         };
         try {
-          await supabase.from('profiles').upsert(profileRow);
+          const { error: upsertError } = await supabase.from('profiles').upsert(profileRow);
+          if (upsertError) {
+            console.error('Failed to upsert profile row:', upsertError);
+            throw new Error('Failed to create user profile. Please try again.');
+          }
         } catch (err) {
-          console.warn('Failed to upsert profile row:', err);
+          console.error('Failed to upsert profile row:', err);
+          throw new Error('Failed to create user profile. Please try again.');
         }
+      } else {
+        throw new Error('User registration failed: no user returned from Supabase.');
       }
       return;
     }

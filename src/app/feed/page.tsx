@@ -51,21 +51,23 @@ export default function Feed() {
 
           <div className="flex items-center justify-center gap-8 border-b border-gray-200">
             <button
-              className={`pb-3 px-1 text-sm font-semibold transition-colors ${
+              className={`pb-3 px-1 text-sm font-semibold transition-colors border-b-2 ${
                 activeTab === "for-you"
-                  ? "text-black border-b-2 border-black"
-                  : "text-gray-500 hover:text-gray-700"
+                  ? "text-black border-black bg-white"
+                  : "text-gray-500 border-transparent bg-white hover:text-gray-700"
               }`}
+              style={{ minWidth: 80 }}
               onClick={() => setActiveTab("for-you")}
             >
               For You
             </button>
             <button
-              className={`pb-3 px-1 text-sm font-semibold transition-colors ${
+              className={`pb-3 px-1 text-sm font-semibold transition-colors border-b-2 ${
                 activeTab === "following"
-                  ? "text-black border-b-2 border-black"
-                  : "text-gray-500 hover:text-gray-700"
+                  ? "text-black border-black bg-white"
+                  : "text-gray-500 border-transparent bg-white hover:text-gray-700"
               }`}
+              style={{ minWidth: 80 }}
               onClick={() => setActiveTab("following")}
             >
               Following
