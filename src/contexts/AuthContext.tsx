@@ -67,6 +67,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     let mounted = true;
 
+    // Safety timeout - force isLoading to false after 5 seconds max
+    const safetyTimeout = setTimeout(() => {
+      if (mounted) {
+        console.warn('Auth loading timeout - forcing isLoading to false');
+        setIsLoading(false);
+      }
+    }, 5000);
+
     const init = async () => {
       if (hasSupabase && supabase) {
         setIsLoading(true);
@@ -81,7 +89,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             };
             setUser(userObj);
 
-            const { data: profileData } = await supabase.from('profiles').select('*').eq('id', currentUser.id).single();
+            // Use maybeSingle instead of single to avoid error when profile doesn't exist
+            const { data: profileData } = await supabase.from('profiles').select('*').eq('id', currentUser.id).maybeSingle();
             if (profileData && mounted) {
               setProfile(profileData as Profile);
             }
@@ -92,7 +101,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         } catch (err) {
           console.error('Supabase init error:', err);
         } finally {
-          setIsLoading(false);
+          if (mounted) setIsLoading(false);
+          clearTimeout(safetyTimeout);
         }
 
         const { data: listener } = supabase.auth.onAuthStateChange(async (event, session) => {
@@ -102,9 +112,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             const userObj: User = { id: u.id, email: u.email || '', user_metadata: (u.user_metadata as any) || {} };
             setUser(userObj);
             try {
-              const { data: profileData } = await supabase.from('profiles').select('*').eq('id', u.id).single();
-              setProfile(profileData as Profile);
-              localStorage.setItem('pronia-profile', JSON.stringify(profileData));
+              // Use maybeSingle to avoid error when profile doesn't exist yet
+              const { data: profileData } = await supabase.from('profiles').select('*').eq('id', u.id).maybeSingle();
+              if (profileData) {
+                setProfile(profileData as Profile);
+                localStorage.setItem('pronia-profile', JSON.stringify(profileData));
+              }
+              // Don't set profile to null here - it might have been set by signUpWithEmail
             } catch (err) {
               console.error('Error fetching profile after auth change:', err);
             }
@@ -119,6 +133,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
         return () => {
           mounted = false;
+          clearTimeout(safetyTimeout);
           listener?.subscription?.unsubscribe();
         };
       } else {
@@ -130,7 +145,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         } catch (err) {
           console.error('Error loading local auth:', err);
         } finally {
-          setIsLoading(false);
+          if (mounted) setIsLoading(false);
+          clearTimeout(safetyTimeout);
         }
       }
     };

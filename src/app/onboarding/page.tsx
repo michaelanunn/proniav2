@@ -156,6 +156,10 @@ export default function Onboarding() {
         return;
       }
       await signUpWithEmail(email, password, signupName);
+      // Signup succeeded - reset saving state and move to step 1
+      setIsSaving(false);
+      setName(signupName);
+      setStep(1);
     } catch (error: any) {
       console.error("Signup error:", error);
       setAuthError(error.message || "Signup failed. Please try again.");
