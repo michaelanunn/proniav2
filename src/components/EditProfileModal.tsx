@@ -79,7 +79,7 @@ export const EditProfileModal = ({
           <Button
             onClick={handleSave}
             size="sm"
-            className="bg-accent hover:bg-accent/90 text-white font-semibold px-4 py-1 h-8 rounded-md"
+            className="bg-primary hover:bg-primary/90 text-white font-bold px-4 py-1 h-8 rounded-md shadow-lg border border-primary-700"
           >
             Save
           </Button>

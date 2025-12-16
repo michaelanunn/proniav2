@@ -167,7 +167,6 @@ export default function Onboarding() {
     e.preventDefault();
     setAuthError("");
     setIsSaving(true);
-
     try {
       if (!signupName.trim()) {
         setAuthError("Please enter your name");
@@ -181,7 +180,18 @@ export default function Onboarding() {
       setStep(1);
     } catch (error: any) {
       console.error("Signup error:", error);
-      setAuthError(error.message || "Signup failed. Please try again.");
+      if (
+        error.message &&
+        error.message.toLowerCase().includes("email") &&
+        error.message.toLowerCase().includes("already")
+      ) {
+        setAuthError("That email is already tied to an existing account. Redirecting to login...");
+        setTimeout(() => {
+          router.push("/login");
+        }, 2500);
+      } else {
+        setAuthError(error.message || "Signup failed. Please try again.");
+      }
       setIsSaving(false);
     }
   };
@@ -304,7 +314,7 @@ export default function Onboarding() {
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         required
-                        minLength={6}
+                        minLength={8}
                         className="bg-gray-50 border-gray-200 pr-10"
                       />
                       <button
@@ -315,6 +325,7 @@ export default function Onboarding() {
                         {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                       </button>
                     </div>
+                    <p className="text-xs text-muted-foreground mt-1">Password must be at least 8 characters long.</p>
                   </div>
 
                   {authError && (
