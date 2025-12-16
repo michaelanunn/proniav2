@@ -217,25 +217,61 @@ const signUpWithEmail = async (email: string, password: string, name: string) =>
     
     try {
       console.log('Attempting to create profile for user:', u.id);
-      // Set avatar_url to null (blank) instead of Google profile pic
-      const { data: insertedProfile, error: insertError } = await supabase
-        .rpc('create_user_profile', {
-          user_id: u.id,
-          user_email: email,
-          user_name: name,
-          user_username: username,
-          user_avatar_url: null // Force blank avatar
-        });
       
-      if (insertError) {
-        console.error('Profile insert error:', insertError);
-        throw new Error(`Failed to create profile: ${insertError.message}`);
+      // First check if profile already exists
+      const { data: existingProfile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', u.id)
+        .maybeSingle();
+      
+      let profileData;
+      
+      if (existingProfile) {
+        // Profile already exists (maybe from trigger), just use it
+        console.log('Profile already exists, using existing profile');
+        profileData = existingProfile;
+      } else {
+        // Create new profile
+        const { data: insertedProfile, error: insertError } = await supabase
+          .from('profiles')
+          .insert([{
+            id: u.id,
+            email: email,
+            name: name,
+            username: username,
+            avatar_url: null,
+            bio: '',
+            instruments: [],
+            experience_level: '',
+            years_playing: ''
+          }])
+          .select()
+          .single();
+        
+        if (insertError) {
+          // If duplicate key error, fetch the existing profile
+          if (insertError.code === '23505') {
+            console.log('Duplicate key error, fetching existing profile');
+            const { data: fetchedProfile } = await supabase
+              .from('profiles')
+              .select('*')
+              .eq('id', u.id)
+              .single();
+            profileData = fetchedProfile;
+          } else {
+            console.error('Profile insert error:', insertError);
+            throw new Error(`Failed to create profile: ${insertError.message}`);
+          }
+        } else {
+          profileData = insertedProfile;
+        }
       }
       
-      console.log('Profile created successfully:', insertedProfile);
+      console.log('Profile ready:', profileData);
       
-      setProfile(insertedProfile as Profile);
-      localStorage.setItem('pronia-profile', JSON.stringify(insertedProfile));
+      setProfile(profileData as Profile);
+      localStorage.setItem('pronia-profile', JSON.stringify(profileData));
       
       const userObj: User = { 
         id: u.id, 
