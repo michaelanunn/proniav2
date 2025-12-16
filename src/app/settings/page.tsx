@@ -13,8 +13,13 @@ import { PaywallModal } from "@/components/PaywallModal";
 const themeColors: any[] = [];
 
 export default function Settings() {
-  // ThemeContext removed
+  // ThemeContext removed - so we'll manage theme locally
+  const [mode, setMode] = useState<"light" | "dark">("light");
+  const [color, setColor] = useState("default");
+  
   const { isPremium, isTrialActive, startTrial } = usePremium();
+  const canUseThemes = isPremium || isTrialActive;
+  
   const [isPrivate, setIsPrivate] = useState(false);
   const [pushNotifications, setPushNotifications] = useState(true);
   const [emailUpdates, setEmailUpdates] = useState(true);
@@ -23,6 +28,13 @@ export default function Settings() {
   useEffect(() => {
     const savedPrivate = localStorage.getItem("profile-private");
     if (savedPrivate) setIsPrivate(JSON.parse(savedPrivate));
+    
+    // Load theme preferences
+    const savedMode = localStorage.getItem("theme-mode");
+    if (savedMode === "dark" || savedMode === "light") setMode(savedMode);
+    
+    const savedColor = localStorage.getItem("theme-color");
+    if (savedColor) setColor(savedColor);
   }, []);
 
   const handlePrivateChange = (value: boolean) => {
@@ -30,7 +42,14 @@ export default function Settings() {
     localStorage.setItem("profile-private", JSON.stringify(value));
   };
 
-  // handleColorChange removed
+  const handleColorChange = (colorId: string) => {
+    if (!canUseThemes && colorId !== "default") {
+      setShowPaywall(true);
+      return;
+    }
+    setColor(colorId);
+    localStorage.setItem("theme-color", colorId);
+  };
 
   return (
     <Layout streak={7}>
