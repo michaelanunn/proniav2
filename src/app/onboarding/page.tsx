@@ -53,12 +53,22 @@ export default function Onboarding() {
   const [authError, setAuthError] = useState("");
 
   useEffect(() => {
+    // If user is logged in but profile is missing, show step 1 immediately
+    // This handles the case where profile fetch is slow or profile doesn't exist
+    if (user && !profile && !isLoading && step === 0) {
+      setStep(1);
+      return;
+    }
+    
     if (profile) {
-      setName(profile.name || "");
-      setUsername(profile.username || "");
-      setSelectedInstruments(profile.instruments || []);
-      setExperienceLevel(profile.experience_level || "");
-      setYearsPlaying(profile.years_playing || "");
+      // Only set values from profile if we haven't started editing yet (step 0 or just arriving)
+      if (step === 0 || step === 1) {
+        setName(profile.name || "");
+        setUsername(profile.username || "");
+        setSelectedInstruments(profile.instruments || []);
+        setExperienceLevel(profile.experience_level || "");
+        setYearsPlaying(profile.years_playing || "");
+      }
       
       const hasAllFields =
         profile.name?.trim() &&
@@ -69,13 +79,12 @@ export default function Onboarding() {
       // Only redirect to feed if ALL onboarding fields are complete
       if (hasAllFields) {
         router.push("/feed");
-      } else {
-        // Always start at step 1 for incomplete profiles
-        // User must go through each step to complete onboarding
+      } else if (step === 0) {
+        // Only advance to step 1 if we're still at step 0
         setStep(1);
       }
     }
-  }, [profile, router]);
+  }, [user, profile, isLoading, router, step]);
 
   const toggleInstrument = (id: string) => {
     if (selectedInstruments.includes(id)) {
@@ -166,6 +175,7 @@ export default function Onboarding() {
     }
   };
 
+  // Show loading only while auth is being checked
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -184,8 +194,15 @@ export default function Onboarding() {
           PRONIA
         </h1>
         <Card className="p-6">
-          {/* Step 0: Sign Up / Google */}
-          {step === 0 && !user && (
+          {/* Loading state: user exists but step hasn't updated yet */}
+          {step === 0 && user && (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+          )}
+
+          {/* Step 0: Sign Up / Google - show when not logged in */}
+          {step === 0 && !user && !isLoading && (
             <div className="space-y-6">
               <h2 className="text-xl font-semibold text-center">Join Pronia</h2>
               <p className="text-sm text-muted-foreground text-center">
