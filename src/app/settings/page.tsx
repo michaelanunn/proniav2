@@ -5,20 +5,15 @@ import { Layout } from "@/components/Layout";
 import { Card } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { ChevronRight, Lock, Moon, Palette, Crown } from "lucide-react";
-import { useTheme, ThemeColor } from "@/contexts/ThemeContext";
+// import { useTheme, ThemeColor } from "@/contexts/ThemeContext";
 import { usePremium } from "@/contexts/PremiumContext";
 import { PaywallModal } from "@/components/PaywallModal";
 
-const themeColors: { id: ThemeColor; name: string; color: string; darkColor: string }[] = [
-  { id: "default", name: "Default", color: "#8B5CF6", darkColor: "#8B5CF6" },
-  { id: "pink", name: "Pink", color: "#FF0080", darkColor: "#FF0080" },
-  { id: "blue", name: "Blue", color: "#0080FF", darkColor: "#0080FF" },
-  { id: "grey", name: "Grey", color: "#666666", darkColor: "#888888" },
-  { id: "black", name: "Black", color: "#000000", darkColor: "#FFFFFF" },
-];
+// Theme colors removed (ThemeContext missing)
+const themeColors: any[] = [];
 
 export default function Settings() {
-  const { mode, color, setMode, setColor, canUseThemes } = useTheme();
+  // ThemeContext removed
   const { isPremium, isTrialActive, startTrial } = usePremium();
   const [isPrivate, setIsPrivate] = useState(false);
   const [pushNotifications, setPushNotifications] = useState(true);
@@ -35,13 +30,7 @@ export default function Settings() {
     localStorage.setItem("profile-private", JSON.stringify(value));
   };
 
-  const handleColorChange = (newColor: ThemeColor) => {
-    if (!canUseThemes && newColor !== "default") {
-      setShowPaywall(true);
-      return;
-    }
-    setColor(newColor);
-  };
+  // handleColorChange removed
 
   return (
     <Layout streak={7}>
