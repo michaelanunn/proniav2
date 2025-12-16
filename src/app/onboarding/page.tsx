@@ -36,14 +36,12 @@ export default function Onboarding() {
   const router = useRouter();
   const { user, profile, isLoading, signInWithGoogle, signUpWithEmail, updateProfile } = useAuth();
   const [step, setStep] = useState(0);
-  const [showVerification, setShowVerification] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [name, setName] = useState("");
   const [username, setUsername] = useState("");
   const [selectedInstruments, setSelectedInstruments] = useState<string[]>([]);
   const [experienceLevel, setExperienceLevel] = useState<string>("");
   const [selectedPieces, setSelectedPieces] = useState<number[]>([]);
-  const [bio, setBio] = useState("");
   const [yearsPlaying, setYearsPlaying] = useState("");
 
   // Email signup states
@@ -60,13 +58,14 @@ export default function Onboarding() {
       setUsername(profile.username || "");
       setSelectedInstruments(profile.instruments || []);
       setExperienceLevel(profile.experience_level || "");
-      setBio(profile.bio || "");
       setYearsPlaying(profile.years_playing || "");
+      
       const hasAllFields =
         profile.name?.trim() &&
         profile.username?.trim() &&
         Array.isArray(profile.instruments) && profile.instruments.length > 0 &&
         profile.experience_level?.trim();
+      
       if (hasAllFields) {
         router.push("/feed");
       } else {
@@ -96,23 +95,26 @@ export default function Onboarding() {
     : popularPieces;
 
   const handleNext = async () => {
-    if (step < 4) {
+    if (step < 3) {
       setStep(step + 1);
     } else {
       setIsSaving(true);
       try {
         await updateProfile({
-          name,
-          username,
+          name: name.trim(),
+          username: username.trim(),
           instruments: selectedInstruments,
           experience_level: experienceLevel,
-          bio,
           years_playing: yearsPlaying,
         });
-        router.push("/feed");
+        
+        // Give it a moment to save, then redirect
+        setTimeout(() => {
+          router.push("/feed");
+        }, 500);
       } catch (error) {
         console.error("Error saving profile:", error);
-      } finally {
+        setAuthError("Failed to save profile. Please try again.");
         setIsSaving(false);
       }
     }
@@ -123,6 +125,7 @@ export default function Onboarding() {
       await signInWithGoogle();
     } catch (error) {
       console.error("Sign in error:", error);
+      setAuthError("Google sign-in failed. Please try again.");
     }
   };
 
@@ -138,9 +141,9 @@ export default function Onboarding() {
         return;
       }
       await signUpWithEmail(email, password, signupName);
-      // Profile setup will happen automatically after signup via useEffect
     } catch (error: any) {
-      setAuthError(error.message || "Signup failed");
+      console.error("Signup error:", error);
+      setAuthError(error.message || "Signup failed. Please try again.");
       setIsSaving(false);
     }
   };
@@ -155,8 +158,6 @@ export default function Onboarding() {
         return selectedInstruments.length > 0;
       case 3:
         return selectedPieces.length === 3;
-      case 4:
-        return true;
       default:
         return false;
     }
@@ -180,27 +181,10 @@ export default function Onboarding() {
           PRONIA
         </h1>
         <Card className="p-6">
-          {showVerification && (
+          {/* Step 0: Sign Up / Google */}
+          {step === 0 && !user && (
             <div className="space-y-6">
-              <h2 className="text-xl font-semibold text-center">Check your email</h2>
-              <p className="text-sm text-muted-foreground text-center">
-                We&apos;ve sent a magic link to <span className="font-semibold">{user?.email}</span>.<br />
-                Please click the link in your email to verify your account and continue.
-              </p>
-              <Button
-                onClick={() => router.push("/feed")}
-                className="w-full h-12 bg-black hover:bg-gray-800 text-white font-semibold"
-              >
-                Continue
-              </Button>
-            </div>
-          )}
-
-          {!showVerification && step === 0 && !user && (
-            <div className="space-y-6">
-              <h2 className="text-xl font-semibold text-center">
-                {showEmailForm ? "Create Account" : "Join Pronia"}
-              </h2>
+              <h2 className="text-xl font-semibold text-center">Join Pronia</h2>
               <p className="text-sm text-muted-foreground text-center">
                 Connect with musicians and track your practice journey
               </p>
@@ -317,7 +301,7 @@ export default function Onboarding() {
             </div>
           )}
 
-          {/* Step 1: Profile Setup */}
+          {/* Step 1: Profile Setup (NO BIO) */}
           {step === 1 && (
             <div className="space-y-4">
               <h2 className="text-xl font-semibold text-center mb-6">Set up your profile</h2>
@@ -349,14 +333,6 @@ export default function Onboarding() {
                     className="pl-8"
                   />
                 </div>
-              </div>
-              <div>
-                <label className="text-sm font-medium mb-2 block">Bio</label>
-                <Input
-                  placeholder="Tell us about yourself"
-                  value={bio}
-                  onChange={(e) => setBio(e.target.value)}
-                />
               </div>
               <div>
                 <label className="text-sm font-medium mb-2 block">Years Playing</label>
@@ -441,30 +417,10 @@ export default function Onboarding() {
                   );
                 })}
               </div>
-            </div>
-          )}
 
-          {/* Step 4: Complete */}
-          {step === 4 && (
-            <div className="space-y-4 text-center">
-              <div className="flex justify-center mb-4">
-                {profile?.avatar_url ? (
-                  <img 
-                    src={profile.avatar_url} 
-                    alt="Profile"
-                    className="h-24 w-24 rounded-full object-cover"
-                  />
-                ) : (
-                  <div className="h-24 w-24 rounded-full bg-muted flex items-center justify-center">
-                    <User className="h-12 w-12 text-muted-foreground" />
-                  </div>
-                )}
-              </div>
-              
-              <h2 className="text-xl font-semibold">You&apos;re all set, {name}!</h2>
-              <p className="text-sm text-muted-foreground">
-                Welcome to Pronia. Start tracking your practice and connecting with other musicians.
-              </p>
+              {authError && (
+                <p className="text-sm text-red-500 text-center">{authError}</p>
+              )}
             </div>
           )}
 
@@ -477,6 +433,7 @@ export default function Onboarding() {
                     variant="outline"
                     onClick={() => setStep(step - 1)}
                     className="flex-1"
+                    disabled={isSaving}
                   >
                     Back
                   </Button>
@@ -488,7 +445,7 @@ export default function Onboarding() {
                 >
                   {isSaving ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : step === 4 ? (
+                  ) : step === 3 ? (
                     "Get Started"
                   ) : step === 3 && selectedPieces.length < 3 ? (
                     `Selected ${selectedPieces.length}/3`
@@ -499,7 +456,7 @@ export default function Onboarding() {
               </div>
 
               <div className="flex justify-center gap-2 mt-6">
-                {[1, 2, 3, 4].map((i) => (
+                {[1, 2, 3].map((i) => (
                   <div
                     key={i}
                     className={`h-1.5 w-8 rounded-full transition-colors ${
