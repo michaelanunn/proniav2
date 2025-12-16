@@ -340,6 +340,7 @@ const signUpWithEmail = async (email: string, password: string, name: string) =>
         if (data.avatar_url !== undefined) payload.avatar_url = data.avatar_url;
         if (data.instruments !== undefined) payload.instruments = data.instruments;
         if (data.experience_level !== undefined) payload.experience_level = data.experience_level;
+        if (data.years_playing !== undefined) payload.years_playing = data.years_playing;
         await supabase.from('profiles').update(payload).eq('id', user.id);
       } catch (err) {
         console.error('Failed to update profile in Supabase:', err);

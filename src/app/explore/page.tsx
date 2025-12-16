@@ -2,10 +2,10 @@
 
 import { Layout } from "@/components/Layout";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { Search, Music, User, Loader2 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { usePractice } from "@/contexts/PracticeContext";
 
 interface UserResult {
   id: string;
@@ -25,13 +25,10 @@ const mockPieces = [
 
 export default function Explore() {
   const router = useRouter();
-  const { sessions } = usePractice();
   const [searchQuery, setSearchQuery] = useState("");
   const [users, setUsers] = useState<UserResult[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSearching, setIsSearching] = useState(false);
-
-  const streak = sessions.length > 0 ? Math.min(sessions.length, 7) : 0;
 
   // Load initial users
   useEffect(() => {
@@ -76,14 +73,14 @@ export default function Explore() {
   };
 
   return (
-    <Layout streak={streak}>
+    <Layout streak={7}>
       <div className="max-w-2xl mx-auto px-4 py-6">
         <form onSubmit={handleSearch} className="mb-6">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
             <Input
               placeholder="Search users, composers, pieces..."
-              className="pl-10 bg-gray-100 border-gray-200 text-black placeholder:text-gray-500"
+              className="pl-10 bg-muted/50 border-0"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
@@ -93,14 +90,14 @@ export default function Explore() {
         <div className="space-y-6">
           {/* Users Section */}
           <div>
-            <h2 className="text-lg font-semibold mb-3 flex items-center gap-2 text-black">
+            <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
               <User className="h-5 w-5" />
               {searchQuery ? "Search Results" : "Musicians"}
             </h2>
             
             {isLoading || isSearching ? (
               <div className="flex items-center justify-center py-8">
-                <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
               </div>
             ) : users.length > 0 ? (
               <div className="space-y-2">
@@ -108,9 +105,9 @@ export default function Explore() {
                   <button
                     key={user.id}
                     onClick={() => navigateToUser(user.username)}
-                    className="w-full p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors flex items-center gap-3 text-left border border-gray-200"
+                    className="w-full p-4 bg-muted/50 rounded-lg hover:bg-muted transition-colors flex items-center gap-3 text-left"
                   >
-                    <div className="h-12 w-12 rounded-full bg-white flex items-center justify-center overflow-hidden flex-shrink-0 border border-gray-200">
+                    <div className="h-12 w-12 rounded-full bg-background flex items-center justify-center overflow-hidden flex-shrink-0">
                       {user.avatar_url ? (
                         <img
                           src={user.avatar_url}
@@ -118,18 +115,18 @@ export default function Explore() {
                           className="h-full w-full object-cover"
                         />
                       ) : (
-                        <User className="h-6 w-6 text-gray-400" />
+                        <User className="h-6 w-6" />
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="font-semibold truncate text-black">{user.name}</p>
-                      <p className="text-sm text-gray-500 truncate">@{user.username}</p>
+                      <p className="font-semibold truncate">{user.name}</p>
+                      <p className="text-sm text-muted-foreground truncate">@{user.username}</p>
                       {user.instruments?.length > 0 && (
                         <div className="flex gap-1 mt-1">
                           {user.instruments.slice(0, 2).map((instrument) => (
                             <span
                               key={instrument}
-                              className="text-xs bg-gray-200 text-gray-700 px-2 py-0.5 rounded capitalize"
+                              className="text-xs bg-secondary px-2 py-0.5 rounded capitalize"
                             >
                               {instrument}
                             </span>
@@ -138,7 +135,7 @@ export default function Explore() {
                       )}
                     </div>
                     <div className="text-right">
-                      <p className="text-sm text-gray-500">
+                      <p className="text-sm text-muted-foreground">
                         {user.followers_count || 0} followers
                       </p>
                     </div>
@@ -146,12 +143,12 @@ export default function Explore() {
                 ))}
               </div>
             ) : (
-              <div className="text-center py-8">
-                <User className="h-12 w-12 mx-auto mb-3 text-gray-300" />
-                <p className="text-sm text-gray-600">
+              <div className="text-center py-8 text-muted-foreground">
+                <User className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                <p className="text-sm">
                   {searchQuery ? "No users found" : "No musicians yet"}
                 </p>
-                <p className="text-xs mt-1 text-gray-400">
+                <p className="text-xs mt-1">
                   {searchQuery ? "Try a different search term" : "Be the first to join!"}
                 </p>
               </div>
@@ -161,7 +158,7 @@ export default function Explore() {
           {/* Pieces Section - Static for now */}
           {!searchQuery && (
             <div>
-              <h2 className="text-lg font-semibold mb-3 flex items-center gap-2 text-black">
+              <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
                 <Music className="h-5 w-5" />
                 Popular Pieces
               </h2>
@@ -169,10 +166,10 @@ export default function Explore() {
                 {mockPieces.map((piece) => (
                   <div
                     key={piece.id}
-                    className="p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer border border-gray-200"
+                    className="p-4 bg-muted/50 rounded-lg hover:bg-muted transition-colors cursor-pointer"
                   >
-                    <p className="font-semibold text-black">{piece.title}</p>
-                    <p className="text-sm text-gray-500">{piece.composer}</p>
+                    <p className="font-semibold">{piece.title}</p>
+                    <p className="text-sm text-muted-foreground">{piece.composer}</p>
                   </div>
                 ))}
               </div>

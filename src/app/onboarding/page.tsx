@@ -5,76 +5,16 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useRouter } from "next/navigation";
-import { User, Loader2, Eye, EyeOff } from "lucide-react";
+import { Piano, Guitar, Mic, User, Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import Link from "next/link";
-
-// Custom SVG icons for instruments
-const PianoIcon = () => (
-  <svg className="h-8 w-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-    <rect x="2" y="6" width="20" height="12" rx="1" />
-    <path d="M6 6v7M10 6v7M14 6v7M18 6v7" />
-    <rect x="4.5" y="6" width="2" height="4.5" fill="currentColor" rx="0.5" />
-    <rect x="8.5" y="6" width="2" height="4.5" fill="currentColor" rx="0.5" />
-    <rect x="13.5" y="6" width="2" height="4.5" fill="currentColor" rx="0.5" />
-    <rect x="17.5" y="6" width="2" height="4.5" fill="currentColor" rx="0.5" />
-  </svg>
-);
-
-const GuitarIcon = () => (
-  <svg className="h-8 w-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-    <path d="M20.5 3.5c-.7-.7-2-1-3.5-.5-1.6.5-3.2 2-4 3-.8 1-1 2.7-.3 4.2L9 13l-3 3a1 1 0 00-.3.7v2c0 .4.3.8.7.8.2 0 .5 0 .7-.2l2.9-2.9 3-3 .8-3.7c1.4.6 2.8.4 3.8-.6 1-1 2.2-2.7 2.6-4.3.4-1.6 0-2.9-.2-3.1z" />
-    <circle cx="9.5" cy="12.5" r="1.6" fill="currentColor" />
-    <path d="M14 9l6-6" strokeLinecap="round" />
-  </svg>
-);
-
-const ViolinIcon = () => (
-  <svg className="h-8 w-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-    <path d="M18 2s-1.5 1.5-3 3c-.9.9-1 2-1 2s-1.2-.2-2.5.2c-1.3.4-2.5 1.8-3 3-1 2.4-.5 5 1.5 6.5 2 1.5 4.5 1.8 6 0 1.5-1.8 1.6-4.8.7-6.8-.5-1.3-1.7-2.6-3-3-.8-.3-1.6-.2-2.1 0" />
-    <path d="M9 7c.5-.5 1.5-1 3-1" strokeLinecap="round" />
-    <path d="M11.5 11.5c-.4.6-1.2 1.4-1.5 2" strokeLinecap="round" />
-    <path d="M14.5 12.5c.4.6 1.2 1.4 1.5 2" strokeLinecap="round" />
-    <path d="M12 3v3" strokeLinecap="round" />
-  </svg>
-);
-
-const DrumsIcon = () => (
-  <svg className="h-8 w-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-    <ellipse cx="12" cy="8" rx="9" ry="3" />
-    <path d="M3 8v7c0 1.7 4 3 9 3s9-1.3 9-3V8" />
-    <path d="M3 12c0 1.7 4 3 9 3s9-1.3 9-3" />
-    <path d="M1 4l5 5M23 4l-5 5" />
-    <circle cx="3" cy="3" r="1.5" fill="currentColor" />
-    <circle cx="21" cy="3" r="1.5" fill="currentColor" />
-  </svg>
-);
-
-const BassIcon = () => (
-  <svg className="h-8 w-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-    <path d="M11 2l2 0.5v3.5" strokeLinecap="round" />
-    <path d="M8 7l8-1" strokeLinecap="round" />
-    <path d="M7 9c-1 2-1 5 2 7s6 1 7-1 1-4-1-6-6-3-8-0z" />
-    <circle cx="11.5" cy="12.5" r="1" fill="currentColor" />
-    <path d="M12 14v6" strokeLinecap="round" />
-  </svg>
-);
-
-const VocalsIcon = () => (
-  <svg className="h-8 w-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-    <rect x="9" y="2" width="6" height="10" rx="3" />
-    <path d="M5 10v1a7 7 0 0014 0v-1" />
-    <path d="M12 18v4M8 22h8" />
-  </svg>
-);
 
 const instruments = [
-  { id: "piano", name: "Piano", Icon: PianoIcon },
-  { id: "guitar", name: "Guitar", Icon: GuitarIcon },
-  { id: "violin", name: "Violin", Icon: ViolinIcon },
-  { id: "drums", name: "Drums", Icon: DrumsIcon },
-  { id: "bass", name: "Bass", Icon: BassIcon },
-  { id: "vocals", name: "Vocals", Icon: VocalsIcon },
+  { id: "piano", name: "Piano", icon: Piano },
+  { id: "guitar", name: "Guitar", icon: Guitar },
+  { id: "violin", name: "Violin", icon: Mic },
+  { id: "drums", name: "Drums", icon: Mic },
+  { id: "bass", name: "Bass", icon: Guitar },
+  { id: "vocals", name: "Vocals", icon: Mic },
 ];
 
 const popularPieces = [
@@ -97,72 +37,46 @@ const experienceLevels = [
 
 export default function Onboarding() {
   const router = useRouter();
-  const { user, profile, signUpWithEmail, signInWithGoogle, updateProfile } = useAuth();
+  const { user, profile, isLoading, signInWithGoogle, updateProfile } = useAuth();
   
-  const [step, setStep] = useState(0); // 0 = signup, 1+ = onboarding steps
+  const [step, setStep] = useState(0); // 0 = login, 1+ = onboarding steps
+  const [showVerification, setShowVerification] = useState(false);
+  const [verificationCode, setVerificationCode] = useState("");
+  const [verificationError, setVerificationError] = useState("");
+  const [isVerifying, setIsVerifying] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [error, setError] = useState("");
-  
-  // Signup form
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  
-  // Profile form
   const [name, setName] = useState("");
   const [username, setUsername] = useState("");
-  const [profilePic, setProfilePic] = useState<string | null>(null);
   const [selectedInstruments, setSelectedInstruments] = useState<string[]>([]);
-  const [yearsPlaying, setYearsPlaying] = useState<string>("");
   const [experienceLevel, setExperienceLevel] = useState<string>("");
   const [selectedPieces, setSelectedPieces] = useState<number[]>([]);
+  const [bio, setBio] = useState("");
+  const [yearsPlaying, setYearsPlaying] = useState("");
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      (async () => {
-        try {
-          const { compressImage } = await import('@/lib/image');
-          const dataUrl = await compressImage(file, 1024, 0.8, 300 * 1024);
-
-          if (process.env.NEXT_PUBLIC_SUPABASE_URL) {
-            try {
-              const res = await fetch(dataUrl);
-              const blob = await res.blob();
-              const form = new FormData();
-              form.append('file', new File([blob], file.name, { type: blob.type }));
-              const upload = await fetch('/api/upload', { method: 'POST', body: form });
-              if (upload.ok) {
-                const json = await upload.json();
-                setProfilePic(json.url);
-                return;
-              }
-            } catch (err) {
-              console.warn('Server upload failed, falling back to data URL', err);
-            }
-          }
-
-          setProfilePic(dataUrl);
-        } catch (err) {
-          console.error('Failed to process onboarding image:', err);
-          alert('Could not process image. Try a smaller file.');
-        }
-      })();
-    }
-  };
-
-  // If already logged in with profile, redirect
+  // Only redirect if all required profile fields are set
   useEffect(() => {
-    if (user && profile?.instruments?.length > 0) {
-      router.push("/feed");
-    } else if (user && profile) {
-      // User exists but hasn't completed onboarding
+    if (profile) {
       setName(profile.name || "");
       setUsername(profile.username || "");
-      setStep(1);
+      setSelectedInstruments(profile.instruments || []);
+      setExperienceLevel(profile.experience_level || "");
+      setBio(profile.bio || "");
+      setYearsPlaying(profile.years_playing || "");
+
+      // Check if all required fields are present
+      const hasAllFields =
+        profile.name?.trim() &&
+        profile.username?.trim() &&
+        Array.isArray(profile.instruments) && profile.instruments.length > 0 &&
+        profile.experience_level?.trim();
+
+      if (hasAllFields) {
+        router.push("/feed");
+      } else {
+        setStep(1); // Start at profile setup
+      }
     }
-  }, [user, profile, router]);
+  }, [profile, router]);
 
   const toggleInstrument = (id: string) => {
     if (selectedInstruments.includes(id)) {
@@ -184,33 +98,8 @@ export default function Onboarding() {
     ? popularPieces.filter((p) => p.level === experienceLevel)
     : popularPieces;
 
-  const handleSignup = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
-
-    if (password !== confirmPassword) {
-      setError("Passwords don't match");
-      return;
-    }
-
-    if (password.length < 6) {
-      setError("Password must be at least 6 characters");
-      return;
-    }
-
-    setIsSaving(true);
-    try {
-      await signUpWithEmail(email, password, name);
-      setStep(1);
-    } catch (err: any) {
-      setError(err.message || "Failed to create account");
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
   const handleNext = async () => {
-    if (step < 5) {
+    if (step < 4) {
       setStep(step + 1);
     } else {
       // Save profile and complete onboarding
@@ -219,11 +108,17 @@ export default function Onboarding() {
         await updateProfile({
           name,
           username,
-          avatar_url: profilePic,
           instruments: selectedInstruments,
           experience_level: experienceLevel,
+          bio,
+          years_playing: yearsPlaying,
         });
-        router.push("/feed");
+        // Show verification step if user is not verified
+        if (user && user.email && !user.email_confirmed_at) {
+          setShowVerification(true);
+        } else {
+          router.push("/feed");
+        }
       } catch (error) {
         console.error("Error saving profile:", error);
       } finally {
@@ -232,233 +127,203 @@ export default function Onboarding() {
     }
   };
 
+  // Handle verification code submission
+  const handleVerify = async () => {
+    setIsVerifying(true);
+    setVerificationError("");
+    try {
+      // Call Supabase verify function (magic link or code)
+      const { error } = await fetch("/api/verify-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: user?.email, code: verificationCode }),
+      }).then(res => res.json());
+      if (error) {
+        setVerificationError(error.message || "Invalid code");
+      } else {
+        router.push("/feed");
+      }
+    } catch (err) {
+      setVerificationError("Verification failed");
+    } finally {
+      setIsVerifying(false);
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    try {
+      await signInWithGoogle();
+    } catch (error) {
+      console.error("Sign in error:", error);
+    }
+  };
+
   const canProceed = () => {
     switch (step) {
       case 0:
-        return email && password && confirmPassword && name;
+        return false; // Need to sign in
       case 1:
         return name.trim() && username.trim();
       case 2:
-        return true; // Profile pic is optional
+        return selectedInstruments.length > 0;
       case 3:
-        return selectedInstruments.length > 0 && yearsPlaying;
-      case 4:
         return selectedPieces.length === 3;
-      case 5:
+      case 4:
         return true;
       default:
         return false;
     }
   };
 
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-white flex items-center justify-center p-4">
+    <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="max-w-md w-full">
         <h1 
-          className="text-3xl font-bold text-center mb-8 text-black" 
+          className="text-3xl font-bold text-center mb-8" 
           style={{ fontFamily: 'Times New Roman, serif' }}
         >
           PRONIA
         </h1>
 
-        <Card className="p-6 border border-gray-200">
-          {/* Step 0: Email/Password Signup */}
-          {step === 0 && !user && (
-            <form onSubmit={handleSignup} className="space-y-4">
-              <h2 className="text-xl font-semibold text-center text-black">Create your account</h2>
-              <p className="text-sm text-gray-500 text-center mb-4">
-                Start your musical journey today
+        <Card className="p-6">
+          {/* Email Verification Step */}
+          {showVerification ? (
+            <div className="space-y-6">
+              <h2 className="text-xl font-semibold text-center">Verify your email</h2>
+              <p className="text-sm text-muted-foreground text-center">
+                Enter the 6-digit code sent to your email address to verify your account.
               </p>
-
-              <div>
-                <label className="text-sm font-medium text-gray-700 mb-1 block">Name</label>
-                <Input
-                  type="text"
-                  placeholder="Your name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  required
-                  className="bg-gray-50 border-gray-200"
-                />
-              </div>
-
-              <div>
-                <label className="text-sm font-medium text-gray-700 mb-1 block">Email</label>
-                <Input
-                  type="email"
-                  placeholder="you@example.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  className="bg-gray-50 border-gray-200"
-                />
-              </div>
-
-              <div>
-                <label className="text-sm font-medium text-gray-700 mb-1 block">Password</label>
-                <div className="relative">
-                  <Input
-                    type={showPassword ? "text" : "password"}
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    className="bg-gray-50 border-gray-200 pr-10"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
-                  >
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </button>
-                </div>
-              </div>
-
-              <div>
-                <label className="text-sm font-medium text-gray-700 mb-1 block">Confirm Password</label>
-                <Input
-                  type={showPassword ? "text" : "password"}
-                  placeholder="••••••••"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  required
-                  className="bg-gray-50 border-gray-200"
-                />
-              </div>
-
-              {error && <p className="text-red-500 text-sm">{error}</p>}
-
+              <Input
+                type="text"
+                maxLength={6}
+                value={verificationCode}
+                onChange={e => setVerificationCode(e.target.value.replace(/[^0-9]/g, ""))}
+                placeholder="123456"
+                className="text-center tracking-widest text-lg font-mono"
+              />
+              {verificationError && <p className="text-red-500 text-sm text-center">{verificationError}</p>}
               <Button
-                type="submit"
-                disabled={!canProceed() || isSaving}
+                onClick={handleVerify}
+                disabled={isVerifying || verificationCode.length !== 6}
                 className="w-full h-12 bg-black hover:bg-gray-800 text-white font-semibold"
               >
-                {isSaving ? <Loader2 className="h-5 w-5 animate-spin" /> : "Create Account"}
+                {isVerifying ? <Loader2 className="h-5 w-5 animate-spin" /> : "Verify"}
               </Button>
-
-              <div className="relative my-4">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-gray-200" />
-                </div>
-                <div className="relative flex justify-center text-xs">
-                  <span className="bg-white px-2 text-gray-400">or</span>
-                </div>
-              </div>
-
+            </div>
+          ) : (
+            <>
+              {/* Step 0: Google Login */}
+              {step === 0 && !user && (
+            <div className="space-y-6">
+              <h2 className="text-xl font-semibold text-center">Join Pronia</h2>
+              <p className="text-sm text-muted-foreground text-center">
+                Connect with musicians and track your practice journey
+              </p>
+              
               <Button
-                type="button"
-                onClick={signInWithGoogle}
+                onClick={handleGoogleSignIn}
                 variant="outline"
-                className="w-full h-12 gap-3 border-gray-200"
+                className="w-full h-12 text-base font-medium gap-3"
               >
                 <svg className="h-5 w-5" viewBox="0 0 24 24">
-                  <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-                  <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-                  <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
-                  <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+                  <path
+                    fill="#4285F4"
+                    d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                  />
+                  <path
+                    fill="#34A853"
+                    d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                  />
+                  <path
+                    fill="#FBBC05"
+                    d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+                  />
+                  <path
+                    fill="#EA4335"
+                    d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                  />
                 </svg>
                 Continue with Google
               </Button>
 
-              <p className="text-center text-sm text-gray-500 mt-4">
-                Already have an account?{" "}
-                <Link href="/login" className="text-black font-semibold hover:underline">
-                  Log in
-                </Link>
+              <p className="text-xs text-center text-muted-foreground">
+                By continuing, you agree to our Terms of Service and Privacy Policy
               </p>
-            </form>
+            </div>
           )}
 
-          {/* Step 1: Username Setup */}
+          {/* Step 1: Profile Setup */}
           {step === 1 && (
             <div className="space-y-4">
-              <h2 className="text-xl font-semibold text-center mb-6 text-black">Set up your profile</h2>
-              
+              <h2 className="text-xl font-semibold text-center mb-6">Set up your profile</h2>
+              {/* Avatar from Google */}
+              {profile?.avatar_url && (
+                <div className="flex justify-center mb-4">
+                  <img 
+                    src={profile.avatar_url} 
+                    alt="Profile"
+                    className="h-20 w-20 rounded-full object-cover"
+                  />
+                </div>
+              )}
               <div>
                 <label className="text-sm font-medium mb-2 block">Full Name</label>
                 <Input
                   placeholder="Your name"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="bg-gray-50 border-gray-200"
                 />
               </div>
-
               <div>
                 <label className="text-sm font-medium mb-2 block">Username</label>
                 <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">@</span>
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">@</span>
                   <Input
                     placeholder="username"
                     value={username}
                     onChange={(e) => setUsername(e.target.value.replace(/[^a-zA-Z0-9_]/g, "").toLowerCase())}
-                    className="pl-8 bg-gray-50 border-gray-200"
+                    className="pl-8"
                   />
                 </div>
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-2 block">Bio</label>
+                <Input
+                  placeholder="Tell us about yourself"
+                  value={bio}
+                  onChange={(e) => setBio(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-2 block">Years Playing</label>
+                <Input
+                  placeholder="e.g. 2, 5, 10+"
+                  value={yearsPlaying}
+                  onChange={(e) => setYearsPlaying(e.target.value)}
+                />
               </div>
             </div>
           )}
 
-          {/* Step 2: Profile Picture */}
+          {/* Step 2: Instruments */}
           {step === 2 && (
             <div className="space-y-4">
-              <h2 className="text-xl font-semibold text-center mb-2 text-black">Add a profile picture</h2>
-              <p className="text-sm text-gray-500 text-center mb-6">
-                Help others recognize you (optional)
-              </p>
-              
-              <div className="flex flex-col items-center">
-                <div className="relative group">
-                  <div className="h-32 w-32 rounded-full bg-gray-100 overflow-hidden flex items-center justify-center border-2 border-dashed border-gray-300">
-                    {profilePic ? (
-                      <img src={profilePic} alt="Profile" className="h-full w-full object-cover" />
-                    ) : (
-                      <User className="h-16 w-16 text-gray-400" />
-                    )}
-                  </div>
-                  <label className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
-                    <span className="text-white text-sm font-medium">Upload</span>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleImageChange}
-                      className="hidden"
-                    />
-                  </label>
-                </div>
-                <label className="mt-4 px-4 py-2 bg-gray-100 rounded-lg text-sm font-medium cursor-pointer hover:bg-gray-200 transition-colors">
-                  Choose Photo
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleImageChange}
-                    className="hidden"
-                  />
-                </label>
-                {profilePic && (
-                  <button 
-                    onClick={() => setProfilePic(null)}
-                    className="mt-2 text-sm text-gray-500 hover:text-gray-700"
-                  >
-                    Remove
-                  </button>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Step 3: Instruments + Years */}
-          {step === 3 && (
-            <div className="space-y-4">
-              <h2 className="text-xl font-semibold text-center mb-2 text-black">Pick your instruments</h2>
-              <p className="text-sm text-gray-500 text-center mb-4">
+              <h2 className="text-xl font-semibold text-center mb-2">Pick your instruments</h2>
+              <p className="text-sm text-muted-foreground text-center mb-6">
                 Select up to 3 instruments you play
               </p>
               
-              <div className="grid grid-cols-3 gap-3 mb-6">
+              <div className="grid grid-cols-3 gap-3">
                 {instruments.map((instrument) => {
-                  const Icon = instrument.Icon;
+                  const Icon = instrument.icon;
                   const isSelected = selectedInstruments.includes(instrument.id);
                   return (
                     <button
@@ -466,45 +331,24 @@ export default function Onboarding() {
                       onClick={() => toggleInstrument(instrument.id)}
                       className={`flex flex-col items-center gap-2 p-4 rounded-lg border-2 transition-colors ${
                         isSelected
-                          ? "border-black bg-gray-100"
-                          : "border-gray-200 hover:border-gray-400"
+                          ? "border-foreground bg-muted"
+                          : "border-border hover:border-foreground/50"
                       }`}
                     >
-                      <Icon />
+                      <Icon className="h-8 w-8" />
                       <span className="text-xs font-medium">{instrument.name}</span>
                     </button>
                   );
                 })}
               </div>
-
-              {selectedInstruments.length > 0 && (
-                <div className="pt-4 border-t border-gray-200">
-                  <label className="text-sm font-medium mb-3 block">How long have you been playing?</label>
-                  <div className="grid grid-cols-2 gap-2">
-                    {["Less than 1 year", "1-3 years", "3-5 years", "5-10 years", "10+ years"].map((option) => (
-                      <button
-                        key={option}
-                        onClick={() => setYearsPlaying(option)}
-                        className={`p-3 rounded-lg border text-sm transition-colors ${
-                          yearsPlaying === option
-                            ? "border-black bg-gray-100 font-medium"
-                            : "border-gray-200 hover:border-gray-400"
-                        }`}
-                      >
-                        {option}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
             </div>
           )}
 
-          {/* Step 4: Pieces */}
-          {step === 4 && (
+          {/* Step 3: Pieces */}
+          {step === 3 && (
             <div className="space-y-4">
-              <h2 className="text-xl font-semibold text-center mb-2 text-black">Pick 3 pieces</h2>
-              <p className="text-sm text-gray-500 text-center mb-4">
+              <h2 className="text-xl font-semibold text-center mb-2">Pick 3 pieces</h2>
+              <p className="text-sm text-muted-foreground text-center mb-4">
                 What pieces are you working on?
               </p>
 
@@ -531,12 +375,12 @@ export default function Onboarding() {
                       onClick={() => togglePiece(piece.id)}
                       className={`w-full p-3 rounded-lg border text-left transition-colors ${
                         isSelected
-                          ? "border-black bg-gray-100"
-                          : "border-gray-200 hover:border-gray-400"
+                          ? "border-foreground bg-muted"
+                          : "border-border hover:border-foreground/50"
                       }`}
                     >
                       <p className="font-semibold text-sm">{piece.title}</p>
-                      <p className="text-xs text-gray-500">{piece.composer}</p>
+                      <p className="text-xs text-muted-foreground">{piece.composer}</p>
                     </button>
                   );
                 })}
@@ -544,21 +388,25 @@ export default function Onboarding() {
             </div>
           )}
 
-          {/* Step 5: Complete */}
-          {step === 5 && (
+          {/* Step 4: Complete */}
+          {step === 4 && (
             <div className="space-y-4 text-center">
               <div className="flex justify-center mb-4">
-                <div className="h-24 w-24 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden">
-                  {profilePic ? (
-                    <img src={profilePic} alt="Profile" className="h-full w-full object-cover" />
-                  ) : (
-                    <User className="h-12 w-12 text-gray-400" />
-                  )}
-                </div>
+                {profile?.avatar_url ? (
+                  <img 
+                    src={profile.avatar_url} 
+                    alt="Profile"
+                    className="h-24 w-24 rounded-full object-cover"
+                  />
+                ) : (
+                  <div className="h-24 w-24 rounded-full bg-muted flex items-center justify-center">
+                    <User className="h-12 w-12 text-muted-foreground" />
+                  </div>
+                )}
               </div>
               
-              <h2 className="text-xl font-semibold text-black">You&apos;re all set, {name}!</h2>
-              <p className="text-sm text-gray-500">
+              <h2 className="text-xl font-semibold">You&apos;re all set, {name}!</h2>
+              <p className="text-sm text-muted-foreground">
                 Welcome to Pronia. Start tracking your practice and connecting with other musicians.
               </p>
             </div>
@@ -572,7 +420,7 @@ export default function Onboarding() {
                   <Button
                     variant="outline"
                     onClick={() => setStep(step - 1)}
-                    className="flex-1 border-gray-200"
+                    className="flex-1"
                   >
                     Back
                   </Button>
@@ -580,15 +428,13 @@ export default function Onboarding() {
                 <Button
                   onClick={handleNext}
                   disabled={!canProceed() || isSaving}
-                  className="flex-1 bg-black hover:bg-gray-800 text-white"
+                  className="flex-1"
                 >
                   {isSaving ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : step === 5 ? (
+                  ) : step === 4 ? (
                     "Get Started"
-                  ) : step === 2 ? (
-                    profilePic ? "Next" : "Skip"
-                  ) : step === 4 && selectedPieces.length < 3 ? (
+                  ) : step === 3 && selectedPieces.length < 3 ? (
                     `Selected ${selectedPieces.length}/3`
                   ) : (
                     "Next"
@@ -597,11 +443,11 @@ export default function Onboarding() {
               </div>
 
               <div className="flex justify-center gap-2 mt-6">
-                {[1, 2, 3, 4, 5].map((i) => (
+                {[1, 2, 3, 4].map((i) => (
                   <div
                     key={i}
                     className={`h-1.5 w-8 rounded-full transition-colors ${
-                      i === step ? "bg-black" : "bg-gray-200"
+                      i === step ? "bg-foreground" : "bg-muted"
                     }`}
                   />
                 ))}

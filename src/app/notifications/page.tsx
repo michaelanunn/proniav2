@@ -1,29 +1,37 @@
 "use client";
 
 import { Layout } from "@/components/Layout";
-import { Bell } from "lucide-react";
-import { usePractice } from "@/contexts/PracticeContext";
+import { Card } from "@/components/ui/card";
+import { Heart, MessageCircle, User } from "lucide-react";
+
+const notifications = [
+  { icon: Heart, text: "Sarah Chen liked your post", time: "2h ago" },
+  { icon: MessageCircle, text: "New comment on your performance", time: "5h ago" },
+  { icon: User, text: "Marcus Williams started following you", time: "1d ago" },
+  { icon: Heart, text: "Anna Schmidt liked your post", time: "2d ago" },
+];
 
 export default function Notifications() {
-  const { sessions } = usePractice();
-  const streak = sessions.length > 0 ? Math.min(sessions.length, 7) : 0;
-
   return (
-    <Layout streak={streak}>
+    <Layout streak={7}>
       <div className="max-w-2xl mx-auto px-4 py-6">
-        <h1 className="text-2xl font-bold mb-6 text-black">Notifications</h1>
+        <h1 className="text-2xl font-bold mb-6">Notifications</h1>
         
-        {/* Empty State */}
-        <div className="text-center py-16">
-          <div className="inline-flex items-center justify-center h-20 w-20 rounded-full bg-gray-100 mb-6">
-            <Bell className="h-10 w-10 text-gray-400" />
-          </div>
-          <h2 className="text-xl font-semibold mb-2 text-black">No notifications yet</h2>
-          <p className="text-gray-500 max-w-sm mx-auto">
-            When someone likes your post, follows you, or comments on your performance, you&apos;ll see it here.
-          </p>
+        <div className="space-y-3">
+          {notifications.map((notif, i) => (
+            <Card key={i} className="p-4 flex items-center gap-4">
+              <div className="h-10 w-10 bg-secondary rounded-full flex items-center justify-center flex-shrink-0">
+                <notif.icon className="h-5 w-5" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-medium">{notif.text}</p>
+                <p className="text-sm text-muted-foreground">{notif.time}</p>
+              </div>
+            </Card>
+          ))}
         </div>
       </div>
     </Layout>
   );
 }
+

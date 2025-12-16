@@ -4,9 +4,8 @@ import { useState, useEffect } from "react";
 import { Layout } from "@/components/Layout";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, Trash2, FileText } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 import { JournalEditor } from "@/components/JournalEditor";
-import { usePractice } from "@/contexts/PracticeContext";
 
 interface JournalEntry {
   id: string;
@@ -16,12 +15,9 @@ interface JournalEntry {
 }
 
 export default function Journal() {
-  const { sessions } = usePractice();
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [editingEntry, setEditingEntry] = useState<JournalEntry | null>(null);
-
-  const streak = sessions.length > 0 ? Math.min(sessions.length, 7) : 0;
 
   // Load entries from localStorage
   useEffect(() => {
@@ -80,29 +76,25 @@ export default function Journal() {
   };
 
   return (
-    <Layout streak={streak}>
+    <Layout streak={7}>
       <div className="max-w-2xl mx-auto px-4 py-6">
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold text-black">Journal</h1>
-          <Button 
-            size="icon" 
-            onClick={() => setIsEditorOpen(true)}
-            className="bg-black hover:bg-gray-800 text-white"
-          >
+          <h1 className="text-2xl font-bold">Journal</h1>
+          <Button size="icon" onClick={() => setIsEditorOpen(true)}>
             <Plus className="h-5 w-5" />
           </Button>
         </div>
 
         {entries.length === 0 ? (
           <div className="text-center py-16">
-            <div className="h-16 w-16 mx-auto mb-4 rounded-full bg-gray-100 flex items-center justify-center">
-              <FileText className="h-8 w-8 text-gray-400" />
+            <div className="h-16 w-16 mx-auto mb-4 rounded-full bg-muted flex items-center justify-center">
+              <Plus className="h-8 w-8 text-muted-foreground" />
             </div>
-            <h3 className="font-semibold text-lg mb-1 text-black">No entries yet</h3>
-            <p className="text-gray-500 text-sm mb-4">
+            <h3 className="font-semibold text-lg mb-1">No entries yet</h3>
+            <p className="text-muted-foreground text-sm mb-4">
               Start documenting your practice journey
             </p>
-            <Button onClick={() => setIsEditorOpen(true)} className="bg-black text-white hover:bg-gray-800">
+            <Button onClick={() => setIsEditorOpen(true)}>
               Write your first entry
             </Button>
           </div>
@@ -111,20 +103,20 @@ export default function Journal() {
             {entries.map((entry) => (
               <Card 
                 key={entry.id} 
-                className="p-4 cursor-pointer hover:shadow-md transition-shadow group bg-white border-gray-200"
+                className="p-4 cursor-pointer hover:shadow-md transition-shadow group"
                 onClick={() => handleEdit(entry)}
               >
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1 min-w-0">
                     <div
-                      className="text-sm text-black line-clamp-3 prose prose-sm"
+                      className="text-sm text-gray-900 line-clamp-3 prose prose-sm"
                       style={{ 
                         fontFamily: 'InterVariable, system-ui, sans-serif',
                         fontWeight: 400,
                       }}
                       dangerouslySetInnerHTML={{ __html: entry.htmlContent }}
                     />
-                    <p className="text-xs text-gray-500 mt-2">
+                    <p className="text-xs text-muted-foreground mt-2">
                       {formatDate(entry.createdAt)}
                     </p>
                   </div>
