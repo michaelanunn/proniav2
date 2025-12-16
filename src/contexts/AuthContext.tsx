@@ -217,13 +217,14 @@ const signUpWithEmail = async (email: string, password: string, name: string) =>
     
     try {
       console.log('Attempting to create profile for user:', u.id);
-      
+      // Set avatar_url to null (blank) instead of Google profile pic
       const { data: insertedProfile, error: insertError } = await supabase
         .rpc('create_user_profile', {
           user_id: u.id,
           user_email: email,
           user_name: name,
-          user_username: username
+          user_username: username,
+          user_avatar_url: null // Force blank avatar
         });
       
       if (insertError) {
