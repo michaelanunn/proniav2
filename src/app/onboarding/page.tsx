@@ -107,8 +107,11 @@ export default function Onboarding() {
     : popularPieces;
 
   const handleNext = async () => {
-    if (step < 3) {
-      setStep(step + 1);
+    // If at step 0 with user (showing step 1 content), go to step 2
+    const effectiveStep = (step === 0 && user) ? 1 : step;
+    
+    if (effectiveStep < 3) {
+      setStep(effectiveStep + 1);
     } else {
       setIsSaving(true);
       try {
@@ -161,7 +164,10 @@ export default function Onboarding() {
   };
 
   const canProceed = () => {
-    switch (step) {
+    // If logged in at step 0, treat it as step 1
+    const effectiveStep = (step === 0 && user) ? 1 : step;
+    
+    switch (effectiveStep) {
       case 0:
         return false;
       case 1:
@@ -194,15 +200,8 @@ export default function Onboarding() {
           PRONIA
         </h1>
         <Card className="p-6">
-          {/* Loading state: user exists but step hasn't updated yet */}
-          {step === 0 && user && (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-            </div>
-          )}
-
           {/* Step 0: Sign Up / Google - show when not logged in */}
-          {step === 0 && !user && !isLoading && (
+          {!user && (
             <div className="space-y-6">
               <h2 className="text-xl font-semibold text-center">Join Pronia</h2>
               <p className="text-sm text-muted-foreground text-center">
@@ -322,8 +321,8 @@ export default function Onboarding() {
             </div>
           )}
 
-          {/* Step 1: Profile Setup (NO BIO) */}
-          {step === 1 && (
+          {/* Step 1: Profile Setup (NO BIO) - show when logged in and at step 0 or 1 */}
+          {user && (step === 0 || step === 1) && (
             <div className="space-y-4">
               <h2 className="text-xl font-semibold text-center mb-6">Set up your profile</h2>
               {profile?.avatar_url && (
@@ -446,7 +445,7 @@ export default function Onboarding() {
           )}
 
           {/* Navigation Buttons */}
-          {step > 0 && (
+          {(step > 0 || user) && (
             <>
               <div className="mt-6 flex gap-3">
                 {step > 1 && (
@@ -477,14 +476,18 @@ export default function Onboarding() {
               </div>
 
               <div className="flex justify-center gap-2 mt-6">
-                {[1, 2, 3].map((i) => (
-                  <div
-                    key={i}
-                    className={`h-1.5 w-8 rounded-full transition-colors ${
-                      i === step ? "bg-foreground" : "bg-muted"
-                    }`}
-                  />
-                ))}
+                {[1, 2, 3].map((i) => {
+                  // If at step 0 with user, treat as step 1
+                  const displayStep = (step === 0 && user) ? 1 : step;
+                  return (
+                    <div
+                      key={i}
+                      className={`h-1.5 w-8 rounded-full transition-colors ${
+                        i === displayStep ? "bg-foreground" : "bg-muted"
+                      }`}
+                    />
+                  );
+                })}
               </div>
             </>
           )}
