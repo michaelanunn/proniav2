@@ -41,9 +41,6 @@ export default function Onboarding() {
   
   const [step, setStep] = useState(0); // 0 = login, 1+ = onboarding steps
   const [showVerification, setShowVerification] = useState(false);
-  const [verificationCode, setVerificationCode] = useState("");
-  const [verificationError, setVerificationError] = useState("");
-  const [isVerifying, setIsVerifying] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [name, setName] = useState("");
   const [username, setUsername] = useState("");
@@ -113,7 +110,7 @@ export default function Onboarding() {
           bio,
           years_playing: yearsPlaying,
         });
-        // Show verification step if user is not verified
+        // Show magic link verification message if user is not verified
         if (user && user.email && !user.email_confirmed_at) {
           setShowVerification(true);
         } else {
@@ -127,28 +124,7 @@ export default function Onboarding() {
     }
   };
 
-  // Handle verification code submission
-  const handleVerify = async () => {
-    setIsVerifying(true);
-    setVerificationError("");
-    try {
-      // Call Supabase verify function (magic link or code)
-      const { error } = await fetch("/api/verify-email", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: user?.email, code: verificationCode }),
-      }).then(res => res.json());
-      if (error) {
-        setVerificationError(error.message || "Invalid code");
-      } else {
-        router.push("/feed");
-      }
-    } catch (err) {
-      setVerificationError("Verification failed");
-    } finally {
-      setIsVerifying(false);
-    }
-  };
+  // No handleVerify needed for magic link
 
   const handleGoogleSignIn = async () => {
     try {
@@ -193,28 +169,19 @@ export default function Onboarding() {
           PRONIA
         </h1>
         <Card className="p-6">
-          {/* Email Verification Step */}
+          {/* Magic Link Verification Step */}
           {showVerification ? (
             <div className="space-y-6">
-              <h2 className="text-xl font-semibold text-center">Verify your email</h2>
+              <h2 className="text-xl font-semibold text-center">Check your email</h2>
               <p className="text-sm text-muted-foreground text-center">
-                Enter the 6-digit code sent to your email address to verify your account.
+                We&apos;ve sent a magic link to <span className="font-semibold">{user?.email}</span>.<br />
+                Please click the link in your email to verify your account and continue.
               </p>
-              <Input
-                type="text"
-                maxLength={6}
-                value={verificationCode}
-                onChange={e => setVerificationCode(e.target.value.replace(/[^0-9]/g, ""))}
-                placeholder="123456"
-                className="text-center tracking-widest text-lg font-mono"
-              />
-              {verificationError && <p className="text-red-500 text-sm text-center">{verificationError}</p>}
               <Button
-                onClick={handleVerify}
-                disabled={isVerifying || verificationCode.length !== 6}
+                onClick={() => router.push("/feed")}
                 className="w-full h-12 bg-black hover:bg-gray-800 text-white font-semibold"
               >
-                {isVerifying ? <Loader2 className="h-5 w-5 animate-spin" /> : "Verify"}
+                Continue
               </Button>
             </div>
           ) : null}
