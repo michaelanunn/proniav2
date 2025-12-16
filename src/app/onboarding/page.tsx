@@ -211,6 +211,7 @@ export default function Onboarding() {
             </div>
           )}
           {/* ...existing onboarding steps... */}
+          </>
         </Card>
       </div>
     </div>
