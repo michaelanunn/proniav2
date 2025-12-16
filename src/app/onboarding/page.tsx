@@ -66,9 +66,12 @@ export default function Onboarding() {
         Array.isArray(profile.instruments) && profile.instruments.length > 0 &&
         profile.experience_level?.trim();
       
+      // Only redirect to feed if ALL onboarding fields are complete
       if (hasAllFields) {
         router.push("/feed");
       } else {
+        // Always start at step 1 for incomplete profiles
+        // User must go through each step to complete onboarding
         setStep(1);
       }
     }
@@ -292,7 +295,8 @@ export default function Onboarding() {
                   <button
                     type="button"
                     onClick={() => setShowEmailForm(false)}
-                    className="w-full text-sm text-muted-foreground hover:text-foreground"
+                    disabled={isSaving}
+                    className="w-full text-sm text-muted-foreground hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     ← Back to options
                   </button>
