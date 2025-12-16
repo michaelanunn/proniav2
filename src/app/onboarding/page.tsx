@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useRouter } from "next/navigation";
-import { Piano, Guitar, Mic, User, Loader2, Eye, EyeOff } from "lucide-react";
+import { Piano, Guitar, Mic, User, Loader2, Eye, EyeOff, Camera, Upload } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
 const instruments = [
@@ -15,15 +15,6 @@ const instruments = [
   { id: "drums", name: "Drums", icon: Mic },
   { id: "bass", name: "Bass", icon: Guitar },
   { id: "vocals", name: "Vocals", icon: Mic },
-];
-
-const popularPieces = [
-  { id: 1, title: "Moonlight Sonata", composer: "Beethoven", level: "intermediate" },
-  { id: 2, title: "Für Elise", composer: "Beethoven", level: "beginner" },
-  { id: 3, title: "Clair de Lune", composer: "Debussy", level: "intermediate" },
-  { id: 4, title: "Prelude in C Major", composer: "Bach", level: "beginner" },
-  { id: 5, title: "Nocturne Op. 9 No. 2", composer: "Chopin", level: "intermediate" },
-  { id: 6, title: "Turkish March", composer: "Mozart", level: "intermediate" },
 ];
 
 const experienceLevels = [
@@ -41,8 +32,11 @@ export default function Onboarding() {
   const [username, setUsername] = useState("");
   const [selectedInstruments, setSelectedInstruments] = useState<string[]>([]);
   const [experienceLevel, setExperienceLevel] = useState<string>("");
-  const [selectedPieces, setSelectedPieces] = useState<number[]>([]);
   const [yearsPlaying, setYearsPlaying] = useState("");
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [onboardingComplete, setOnboardingComplete] = useState(false);
 
   // Email signup states
   const [showEmailForm, setShowEmailForm] = useState(false);
@@ -53,21 +47,24 @@ export default function Onboarding() {
   const [authError, setAuthError] = useState("");
 
   useEffect(() => {
+    // If we've marked onboarding as complete, don't interfere with redirect
+    if (onboardingComplete) return;
+    
     // If user is logged in but profile is missing, show step 1 immediately
-    // This handles the case where profile fetch is slow or profile doesn't exist
     if (user && !profile && !isLoading && step === 0) {
       setStep(1);
       return;
     }
     
     if (profile) {
-      // Only set values from profile if we haven't started editing yet (step 0 or just arriving)
-      if (step === 0 || step === 1) {
+      // Only set values from profile if we haven't started editing yet (step 0)
+      if (step === 0) {
         setName(profile.name || "");
         setUsername(profile.username || "");
         setSelectedInstruments(profile.instruments || []);
         setExperienceLevel(profile.experience_level || "");
         setYearsPlaying(profile.years_playing || "");
+        setAvatarUrl(profile.avatar_url || null);
       }
       
       const hasAllFields =
@@ -76,15 +73,15 @@ export default function Onboarding() {
         Array.isArray(profile.instruments) && profile.instruments.length > 0 &&
         profile.experience_level?.trim();
       
-      // Only redirect to feed if ALL onboarding fields are complete
-      if (hasAllFields) {
+      // Only redirect to feed if ALL onboarding fields are complete AND we're at step 0
+      if (hasAllFields && step === 0) {
         router.push("/feed");
       } else if (step === 0) {
-        // Only advance to step 1 if we're still at step 0
+        // Advance to step 1 if we're still at step 0
         setStep(1);
       }
     }
-  }, [user, profile, isLoading, router, step]);
+  }, [user, profile, isLoading, router, step, onboardingComplete]);
 
   const toggleInstrument = (id: string) => {
     if (selectedInstruments.includes(id)) {
@@ -94,26 +91,16 @@ export default function Onboarding() {
     }
   };
 
-  const togglePiece = (id: number) => {
-    if (selectedPieces.includes(id)) {
-      setSelectedPieces(selectedPieces.filter((p) => p !== id));
-    } else if (selectedPieces.length < 3) {
-      setSelectedPieces([...selectedPieces, id]);
-    }
-  };
-
-  const filteredPieces = experienceLevel
-    ? popularPieces.filter((p) => p.level === experienceLevel)
-    : popularPieces;
-
   const handleNext = async () => {
     // If at step 0 with user (showing step 1 content), go to step 2
     const effectiveStep = (step === 0 && user) ? 1 : step;
     
-    if (effectiveStep < 3) {
+    if (effectiveStep < 4) {
       setStep(effectiveStep + 1);
     } else {
+      // Final step - save everything and redirect
       setIsSaving(true);
+      setOnboardingComplete(true); // Prevent useEffect from interfering
       try {
         await updateProfile({
           name: name.trim(),
@@ -121,17 +108,49 @@ export default function Onboarding() {
           instruments: selectedInstruments,
           experience_level: experienceLevel,
           years_playing: yearsPlaying,
+          avatar_url: avatarUrl,
         });
         
-        // Give it a moment to save, then redirect
-        setTimeout(() => {
-          router.push("/feed");
-        }, 500);
+        // Redirect immediately
+        router.push("/feed");
       } catch (error) {
         console.error("Error saving profile:", error);
         setAuthError("Failed to save profile. Please try again.");
         setIsSaving(false);
+        setOnboardingComplete(false);
       }
+    }
+  };
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Check file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      setAuthError("Image must be less than 5MB");
+      return;
+    }
+
+    setIsUploading(true);
+    setAuthError("");
+
+    try {
+      // Convert to base64 for preview (in production, upload to storage)
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        setAvatarUrl(event.target?.result as string);
+        setIsUploading(false);
+      };
+      reader.onerror = () => {
+        setAuthError("Failed to read image");
+        setIsUploading(false);
+      };
+      reader.readAsDataURL(file);
+    } catch (error) {
+      console.error("Upload error:", error);
+      setAuthError("Failed to upload image");
+      setIsUploading(false);
     }
   };
 
@@ -179,7 +198,9 @@ export default function Onboarding() {
       case 2:
         return selectedInstruments.length > 0;
       case 3:
-        return selectedPieces.length === 3;
+        return experienceLevel.trim().length > 0;
+      case 4:
+        return true; // Profile pic is optional
       default:
         return false;
     }
@@ -400,50 +421,88 @@ export default function Onboarding() {
             </div>
           )}
 
-          {/* Step 3: Pieces */}
+          {/* Step 3: Experience Level */}
           {step === 3 && (
             <div className="space-y-4">
-              <h2 className="text-xl font-semibold text-center mb-2">Pick 3 pieces</h2>
-              <p className="text-sm text-muted-foreground text-center mb-4">
-                What pieces are you working on?
+              <h2 className="text-xl font-semibold text-center mb-2">What's your level?</h2>
+              <p className="text-sm text-muted-foreground text-center mb-6">
+                Select your experience level
               </p>
 
-              <div className="flex gap-2 mb-4 overflow-x-auto pb-2">
+              <div className="space-y-3">
                 {experienceLevels.map((level) => (
-                  <Button
+                  <button
                     key={level.id}
-                    variant={experienceLevel === level.id ? "default" : "outline"}
-                    size="sm"
                     onClick={() => setExperienceLevel(level.id)}
-                    className="whitespace-nowrap"
+                    className={`w-full p-4 rounded-lg border-2 text-left transition-colors ${
+                      experienceLevel === level.id
+                        ? "border-foreground bg-muted"
+                        : "border-border hover:border-foreground/50"
+                    }`}
                   >
-                    {level.label}
-                  </Button>
+                    <p className="font-semibold">{level.label}</p>
+                  </button>
                 ))}
-              </div>
-              
-              <div className="space-y-2 max-h-80 overflow-y-auto">
-                {filteredPieces.map((piece) => {
-                  const isSelected = selectedPieces.includes(piece.id);
-                  return (
-                    <button
-                      key={piece.id}
-                      onClick={() => togglePiece(piece.id)}
-                      className={`w-full p-3 rounded-lg border text-left transition-colors ${
-                        isSelected
-                          ? "border-foreground bg-muted"
-                          : "border-border hover:border-foreground/50"
-                      }`}
-                    >
-                      <p className="font-semibold text-sm">{piece.title}</p>
-                      <p className="text-xs text-muted-foreground">{piece.composer}</p>
-                    </button>
-                  );
-                })}
               </div>
 
               {authError && (
-                <p className="text-sm text-red-500 text-center">{authError}</p>
+                <p className="text-sm text-red-500 text-center mt-4">{authError}</p>
+              )}
+            </div>
+          )}
+
+          {/* Step 4: Profile Picture */}
+          {step === 4 && (
+            <div className="space-y-4">
+              <h2 className="text-xl font-semibold text-center mb-2">Add a profile picture</h2>
+              <p className="text-sm text-muted-foreground text-center mb-6">
+                Help others recognize you (optional)
+              </p>
+
+              <div className="flex flex-col items-center gap-4">
+                <div 
+                  className="h-32 w-32 rounded-full bg-muted flex items-center justify-center overflow-hidden border-2 border-dashed border-border cursor-pointer hover:border-foreground/50 transition-colors"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  {isUploading ? (
+                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                  ) : avatarUrl ? (
+                    <img src={avatarUrl} alt="Profile" className="h-full w-full object-cover" />
+                  ) : (
+                    <Camera className="h-10 w-10 text-muted-foreground" />
+                  )}
+                </div>
+
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleAvatarUpload}
+                  className="hidden"
+                />
+
+                <Button
+                  variant="outline"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isUploading}
+                  className="gap-2"
+                >
+                  <Upload className="h-4 w-4" />
+                  {avatarUrl ? "Change Photo" : "Upload Photo"}
+                </Button>
+
+                {avatarUrl && (
+                  <button
+                    onClick={() => setAvatarUrl(null)}
+                    className="text-sm text-muted-foreground hover:text-foreground"
+                  >
+                    Remove photo
+                  </button>
+                )}
+              </div>
+
+              {authError && (
+                <p className="text-sm text-red-500 text-center mt-4">{authError}</p>
               )}
             </div>
           )}
@@ -457,22 +516,20 @@ export default function Onboarding() {
                     variant="outline"
                     onClick={() => setStep(step - 1)}
                     className="flex-1"
-                    disabled={isSaving}
+                    disabled={isSaving || isUploading}
                   >
                     Back
                   </Button>
                 )}
                 <Button
                   onClick={handleNext}
-                  disabled={!canProceed() || isSaving}
+                  disabled={!canProceed() || isSaving || isUploading}
                   className="flex-1"
                 >
                   {isSaving ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : step === 3 ? (
+                  ) : step === 4 ? (
                     "Get Started"
-                  ) : step === 3 && selectedPieces.length < 3 ? (
-                    `Selected ${selectedPieces.length}/3`
                   ) : (
                     "Next"
                   )}
@@ -480,13 +537,13 @@ export default function Onboarding() {
               </div>
 
               <div className="flex justify-center gap-2 mt-6">
-                {[1, 2, 3].map((i) => {
+                {[1, 2, 3, 4].map((i) => {
                   // If at step 0 with user, treat as step 1
                   const displayStep = (step === 0 && user) ? 1 : step;
                   return (
                     <div
                       key={i}
-                      className={`h-1.5 w-8 rounded-full transition-colors ${
+                      className={`h-1.5 w-6 rounded-full transition-colors ${
                         i === displayStep ? "bg-foreground" : "bg-muted"
                       }`}
                     />
