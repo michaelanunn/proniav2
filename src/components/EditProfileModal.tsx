@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { X, Camera } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,6 +26,14 @@ export const EditProfileModal = ({
 }: EditProfileModalProps) => {
   const [formData, setFormData] = useState<ProfileData>(initialData);
   const [previewImage, setPreviewImage] = useState<string | null>(initialData.profilePic);
+
+  // Sync form data when modal opens or initialData changes
+  useEffect(() => {
+    if (isOpen) {
+      setFormData(initialData);
+      setPreviewImage(initialData.profilePic);
+    }
+  }, [isOpen, initialData]);
 
   if (!isOpen) return null;
 

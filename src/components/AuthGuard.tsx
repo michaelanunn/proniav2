@@ -2,7 +2,7 @@
 
 import { useAuth } from "@/contexts/AuthContext";
 import { useRouter, usePathname } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { Loader2 } from "lucide-react";
 
 // Pages that don't require authentication
@@ -28,9 +28,17 @@ export const AuthGuard = ({ children }: AuthGuardProps) => {
   const { user, profile, isLoading } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
+  
+  // Track if user has ever passed onboarding check to prevent false redirects during updates
+  const hasPassedOnboarding = useRef(false);
 
   const isPublicPath = PUBLIC_PATHS.some((path) => pathname?.startsWith(path));
   const isOnOnboarding = pathname === "/onboarding";
+  
+  // Update ref when onboarding is complete
+  if (isOnboardingComplete(profile)) {
+    hasPassedOnboarding.current = true;
+  }
 
   useEffect(() => {
     if (isLoading) return;
@@ -42,8 +50,8 @@ export const AuthGuard = ({ children }: AuthGuardProps) => {
     }
     
     // Logged in but onboarding not complete - redirect to onboarding
-    // (unless already on onboarding page)
-    if (user && !isOnOnboarding && !isOnboardingComplete(profile)) {
+    // BUT only if we haven't previously passed onboarding (prevents false redirects during profile updates)
+    if (user && !isOnOnboarding && !isOnboardingComplete(profile) && !hasPassedOnboarding.current) {
       router.push("/onboarding");
       return;
     }
@@ -72,8 +80,8 @@ export const AuthGuard = ({ children }: AuthGuardProps) => {
     );
   }
 
-  // If onboarding not complete, show loader while redirecting
-  if (!isOnboardingComplete(profile)) {
+  // If onboarding not complete AND we haven't passed before, show loader while redirecting
+  if (!isOnboardingComplete(profile) && !hasPassedOnboarding.current) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
