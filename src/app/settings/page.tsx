@@ -26,14 +26,6 @@ export default function Settings() {
   const [showPaywall, setShowPaywall] = useState(false);
 
 
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-muted-foreground">emma@example.com</span>
-                  <ChevronRight className="h-5 w-5 text-muted-foreground" />
-                </div>
-              </div>
-            </Card>
-          </div>
-
           {/* Appearance */}
           <div>
             <h2 className="text-sm font-semibold text-muted-foreground mb-3 uppercase tracking-wide">
