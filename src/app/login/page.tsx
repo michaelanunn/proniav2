@@ -12,13 +12,13 @@ import { useEffect } from "react";
 import { Loader2, Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
 
-export default function Login() {
   const { user, isLoading: authLoading, signInWithEmail, signInWithGoogle } = useAuth();
   const router = useRouter();
-  
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
@@ -32,6 +32,9 @@ export default function Login() {
     e.preventDefault();
     setError("");
     setIsLoading(true);
+
+    // Add a short delay for UI flow/complexity
+    await new Promise((resolve) => setTimeout(resolve, 900));
 
     try {
       await signInWithEmail(email, password);
@@ -48,13 +51,13 @@ export default function Login() {
   return (
     <div className="min-h-screen bg-white flex items-center justify-center p-4">
       <div className="max-w-md w-full">
-        <h1 
-          className="text-4xl font-bold text-center mb-2 text-black" 
-          style={{ fontFamily: 'Times New Roman, serif' }}
+        <h1
+          className="text-4xl md:text-5xl font-extrabold text-center mb-2 text-black tracking-tight"
+          style={{ fontFamily: 'SF Pro Display, -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif' }}
         >
           PRONIA
         </h1>
-        <p className="text-center text-gray-500 mb-8">
+        <p className="text-center text-gray-600 mb-8 text-lg font-medium" style={{ fontFamily: 'SF Pro Text, -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif' }}>
           Welcome back
         </p>
 
@@ -97,6 +100,20 @@ export default function Login() {
               </div>
             </div>
 
+
+            <div className="flex items-center mb-2">
+              <input
+                id="rememberMe"
+                type="checkbox"
+                checked={rememberMe}
+                onChange={() => setRememberMe((v) => !v)}
+                className="form-checkbox h-4 w-4 text-black border-gray-300 rounded focus:ring-black transition duration-150 mr-2"
+              />
+              <label htmlFor="rememberMe" className="text-sm text-gray-700 select-none cursor-pointer">
+                Remember me?
+              </label>
+            </div>
+
             {error && (
               <p className="text-red-500 text-sm">{error}</p>
             )}
@@ -104,10 +121,13 @@ export default function Login() {
             <Button
               type="submit"
               disabled={isLoading}
-              className="w-full h-12 bg-black hover:bg-gray-800 text-white font-semibold"
+              className={`w-full h-12 bg-black hover:bg-gray-800 text-white font-semibold transition-all duration-300 ${isLoading ? 'scale-95 opacity-80' : ''}`}
             >
               {isLoading ? (
-                <Loader2 className="h-5 w-5 animate-spin" />
+                <span className="flex items-center justify-center gap-2">
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                  <span>Logging in...</span>
+                </span>
               ) : (
                 "Log In"
               )}
@@ -152,7 +172,7 @@ export default function Login() {
           <p className="text-center text-sm text-gray-500 mt-6">
             Don&apos;t have an account?{" "}
             <Link href="/onboarding" className="text-black font-semibold hover:underline">
-              Sign up
+              Create a free account
             </Link>
           </p>
         </Card>
