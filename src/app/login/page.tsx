@@ -11,6 +11,7 @@ import { useEffect } from "react";
 import { Loader2, Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
 
+export default function Login() {
   const { user, isLoading: authLoading, signInWithEmail, signInWithGoogle } = useAuth();
   const router = useRouter();
 
