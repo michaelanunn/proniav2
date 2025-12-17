@@ -1,6 +1,7 @@
 import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
+import sharp from "sharp";
 
 export async function POST(request: NextRequest) {
   const supabase = createRouteHandlerClient({ cookies });
@@ -17,12 +18,37 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const buffer = await file.arrayBuffer();
+
+    let buffer = Buffer.from(await file.arrayBuffer());
     const filename = `${user.id}/${Date.now()}-${file.name}`;
+
+    // Try to compress if image
+    const mimeType = file.type || "";
+    if (mimeType.startsWith("image/")) {
+      try {
+        // Use sharp to compress (resize if too large, convert to jpeg/webp, set quality)
+        let sharpInstance = sharp(buffer);
+        // Optionally resize if very large (e.g. max 2000px)
+        sharpInstance = sharpInstance.resize({
+          width: 2000,
+          height: 2000,
+          fit: "inside",
+          withoutEnlargement: true
+        });
+        // Convert to webp for best compression, fallback to jpeg if needed
+        if (mimeType === "image/png" || mimeType === "image/jpeg") {
+          buffer = await sharpInstance.webp({ quality: 80 }).toBuffer();
+        } else {
+          buffer = await sharpInstance.toBuffer();
+        }
+      } catch (err) {
+        console.warn("Image compression failed, uploading original:", err);
+      }
+    }
 
     const { error: uploadError } = await supabase.storage
       .from("avatars")
-      .upload(filename, Buffer.from(buffer), { upsert: true });
+      .upload(filename, buffer, { upsert: true });
 
     if (uploadError) {
       console.error("Upload error:", uploadError);

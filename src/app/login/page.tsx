@@ -53,11 +53,11 @@ export default function Login() {
       <div className="max-w-md w-full">
         <h1
           className="text-4xl md:text-5xl font-extrabold text-center mb-2 text-black tracking-tight"
-          style={{ fontFamily: 'SF Pro Display, -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif' }}
+          style={{ fontFamily: 'Times New Roman, serif' }}
         >
           PRONIA
         </h1>
-        <p className="text-center text-gray-600 mb-8 text-lg font-medium" style={{ fontFamily: 'SF Pro Text, -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif' }}>
+        <p className="text-center text-gray-600 mb-8 text-lg font-medium" style={{ fontFamily: 'Times New Roman, serif' }}>
           Welcome back
         </p>
 
