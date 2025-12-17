@@ -102,7 +102,7 @@ export default function Onboarding() {
       setIsSaving(true);
       setOnboardingComplete(true); // Prevent useEffect from interfering
       try {
-        await updateProfile({
+        const updateResult = await updateProfile({
           name: name.trim(),
           username: username.trim(),
           instruments: selectedInstruments,
@@ -110,12 +110,21 @@ export default function Onboarding() {
           years_playing: yearsPlaying,
           avatar_url: avatarUrl,
         });
-        
+
+        // If updateProfile returns a result, check for errors
+        if (updateResult && updateResult.error) {
+          console.error("Supabase updateProfile error:", updateResult.error);
+          setAuthError("Failed to save profile: " + (updateResult.error.message || "Unknown error"));
+          setIsSaving(false);
+          setOnboardingComplete(false);
+          return;
+        }
+
         // Redirect immediately
         router.push("/feed");
       } catch (error) {
         console.error("Error saving profile:", error);
-        setAuthError("Failed to save profile. Please try again.");
+        setAuthError("Failed to save profile. Please try again. " + (error?.message || ""));
         setIsSaving(false);
         setOnboardingComplete(false);
       }

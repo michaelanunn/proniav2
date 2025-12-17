@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  // Redirect to onboarding for new users, or home for existing
-  return NextResponse.redirect(new URL("/onboarding", request.url));
+  // Redirect to a single post-auth decision point
+  return NextResponse.redirect(new URL("/post-auth", request.url));
 }
 
