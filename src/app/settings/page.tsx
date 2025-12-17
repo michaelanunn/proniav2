@@ -25,56 +25,7 @@ export default function Settings() {
   const [emailUpdates, setEmailUpdates] = useState(true);
   const [showPaywall, setShowPaywall] = useState(false);
 
-  useEffect(() => {
-    const savedPrivate = localStorage.getItem("profile-private");
-    if (savedPrivate) setIsPrivate(JSON.parse(savedPrivate));
-    
-    // Load theme preferences
-    const savedMode = localStorage.getItem("theme-mode");
-    if (savedMode === "dark" || savedMode === "light") setMode(savedMode);
-    
-    const savedColor = localStorage.getItem("theme-color");
-    if (savedColor) setColor(savedColor);
-  }, []);
 
-  const handlePrivateChange = (value: boolean) => {
-    setIsPrivate(value);
-    localStorage.setItem("profile-private", JSON.stringify(value));
-  };
-
-  const handleColorChange = (colorId: string) => {
-    if (!canUseThemes && colorId !== "default") {
-      setShowPaywall(true);
-      return;
-    }
-    setColor(colorId);
-    localStorage.setItem("theme-color", colorId);
-  };
-
-  return (
-    <Layout streak={7}>
-      <div className="max-w-2xl mx-auto px-4 py-6">
-        <h1 className="text-2xl font-bold mb-6">Settings</h1>
-
-        <div className="space-y-6">
-          {/* Account Settings */}
-          <div>
-            <h2 className="text-sm font-semibold text-muted-foreground mb-3 uppercase tracking-wide">
-              Account
-            </h2>
-            <Card className="divide-y divide-border">
-              <div className="p-4 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <Lock className="h-5 w-5 text-muted-foreground" />
-                  <span className="font-medium">Private Profile</span>
-                </div>
-                <Switch 
-                  checked={isPrivate} 
-                  onCheckedChange={handlePrivateChange}
-                />
-              </div>
-              <div className="p-4 flex items-center justify-between cursor-pointer hover:bg-muted/50 transition-colors">
-                <span className="font-medium">Email</span>
                 <div className="flex items-center gap-2">
                   <span className="text-sm text-muted-foreground">emma@example.com</span>
                   <ChevronRight className="h-5 w-5 text-muted-foreground" />

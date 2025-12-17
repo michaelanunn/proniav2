@@ -1,7 +1,8 @@
 "use client";
 
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import { createClient, SupabaseClient } from "@supabase/supabase-js";
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import { useMemo } from "react";
 
 interface User {
   id: string;
@@ -52,17 +53,13 @@ interface AuthContextType {
   refreshProfile: () => Promise<void>;
 }
 
+const supabase = useMemo(() => createClientComponentClient(), []);
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-
-  const hasSupabase = !!process.env.NEXT_PUBLIC_SUPABASE_URL && !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  const supabase: SupabaseClient | null = hasSupabase
-    ? createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!)
-    : null;
 
   useEffect(() => {
     let mounted = true;
@@ -76,7 +73,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }, 5000);
 
     const init = async () => {
-      if (hasSupabase && supabase) {
+      if (supabase) {
         setIsLoading(true);
         try {
           const { data } = await supabase.auth.getUser();
@@ -159,7 +156,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       alert('Supabase not configured. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY.');
       return;
     }
-    await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.origin } });
+    await supabase.auth.signInWithOAuth({
+  provider: "google",
+  options: { redirectTo: `${window.location.origin}/auth/callback` },
+});
+
   };
 
   const signInWithEmail = async (email: string, password: string) => {

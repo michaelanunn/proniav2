@@ -10,9 +10,9 @@ interface BrandMarkProps {
 
 export const BrandMark = ({ href = "/", className }: BrandMarkProps) => {
 	const mark = (
-		<div className={cn("inline-flex items-center gap-2 select-none font-extrabold tracking-widest text-2xl md:text-3xl text-black", className)}>
-			<span>PRONIA</span>
-		</div>
+    <div className={cn("inline-flex items-center gap-2 select-none font-extrabold tracking-widest text-2xl md:text-3xl text-black", className)} style={{ fontFamily: 'Times New Roman, serif' }}>
+      <span>PRONIA</span>
+    </div>
 	);
 
   return href ? (
