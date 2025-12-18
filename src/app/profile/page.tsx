@@ -14,7 +14,6 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 const badges = [
   { icon: Music, color: "text-foreground", isComponent: false },
   { icon: User, color: "text-foreground", isComponent: false },
-  { text: "#127", isComponent: true },
   { icon: Flame, color: "text-accent", isComponent: false },
 ];
 
@@ -57,10 +56,11 @@ export default function Profile() {
 
   // Redirect if not logged in
   useEffect(() => {
-    if (!isLoading && !user) {
-      router.push("/onboarding");
-    }
-  }, [user, isLoading, router]);
+  if (!isLoading && !user) {
+    router.replace("/login");
+  }
+}, [user, isLoading, router]);
+
 
   const formatDuration = (seconds: number) => {
     const hrs = Math.floor(seconds / 3600);
@@ -87,7 +87,7 @@ export default function Profile() {
 
   if (isLoading) {
     return (
-      <Layout streak={7}>
+      <Layout>
         <div className="flex items-center justify-center py-20">
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
@@ -95,12 +95,22 @@ export default function Profile() {
     );
   }
 
-  if (!user || !profile) {
-    return null;
-  }
+  if (!user) return null;
+
+
+if (!profile) {
+  return (
+    <Layout>
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    </Layout>
+  );
+}
+
 
   return (
-    <Layout streak={7}>
+    <Layout>
       <EditProfileModal
         isOpen={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}
@@ -141,11 +151,7 @@ export default function Profile() {
                 key={i}
                 className="h-12 w-12 rounded-full border-2 border-border bg-background flex items-center justify-center"
               >
-                {badge.isComponent ? (
-                  <span className="text-xs font-bold">{badge.text}</span>
-                ) : (
-                  <badge.icon className={`h-5 w-5 ${badge.color}`} />
-                )}
+                <badge.icon className={`h-5 w-5 ${badge.color}`} />
               </div>
             ))}
           </div>
