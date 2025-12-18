@@ -1,195 +1,96 @@
 "use client";
 
-import { useState } from "react";
-import { Layout } from "@/components/Layout";
 import { Card } from "@/components/ui/card";
-import { Switch } from "@/components/ui/switch";
-import { Moon, Palette, Crown, Lock } from "lucide-react";
-import { usePremium } from "@/contexts/PremiumContext";
-import { PaywallModal } from "@/components/PaywallModal";
+import { Button } from "@/components/ui/button";
+import { X, Crown, Check } from "lucide-react";
 
-// Temporary theme colors (since ThemeContext is removed)
-const themeColors = [
-  {
-    id: "default",
-    name: "Default",
-    color: "#6366f1",
-    darkColor: "#4f46e5",
-  },
-  {
-    id: "sunset",
-    name: "Sunset",
-    color: "#f97316",
-    darkColor: "#ea580c",
-  },
-];
+interface PaywallModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onStartTrial?: () => void;
+  onSubscribe?: () => void;
+  hasUsedTrial?: boolean;
+}
 
-export default function Settings() {
-  // Theme handled locally
-  const [mode, setMode] = useState<"light" | "dark">("light");
-  const [color, setColor] = useState("default");
+export function PaywallModal({
+  isOpen,
+  onClose,
+  onStartTrial,
+  onSubscribe,
+  hasUsedTrial = false,
+}: PaywallModalProps) {
+  if (!isOpen) return null;
 
-  const { isPremium, isTrialActive, hasUsedTrial, startTrial, upgradeToPremium } = usePremium();
-  const canUseThemes = isPremium || isTrialActive;
-
-  const [pushNotifications, setPushNotifications] = useState(true);
-  const [emailUpdates, setEmailUpdates] = useState(true);
-  const [showPaywall, setShowPaywall] = useState(false);
-
-  const handleColorChange = (themeId: string) => {
-    if (!canUseThemes && themeId !== "default") {
-      setShowPaywall(true);
-      return;
-    }
-    setColor(themeId);
-  };
-
-  const handleStartTrial = () => {
-    startTrial();
-    setShowPaywall(false);
-  };
-
-  const handleSubscribe = () => {
-    upgradeToPremium();
-    setShowPaywall(false);
-  };
+  const features = [
+    "Unlimited practice recording",
+    "Advanced analytics",
+    "Custom themes",
+    "Priority support",
+    "Ad-free experience",
+  ];
 
   return (
-    <Layout streak={0}>
-      <div className="max-w-2xl mx-auto px-4 py-6 space-y-8">
-        {/* Appearance */}
-        <div>
-          <h2 className="text-sm font-semibold text-muted-foreground mb-3 uppercase tracking-wide">
-            Appearance
-          </h2>
-          <Card className="divide-y divide-border">
-            <div className="p-4 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Moon className="h-5 w-5 text-muted-foreground" />
-                <span className="font-medium">Dark Mode</span>
-              </div>
-              <Switch
-                checked={mode === "dark"}
-                onCheckedChange={(checked) => setMode(checked ? "dark" : "light")}
-              />
-            </div>
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <Card className="w-full max-w-md">
+        <div className="p-6">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-2xl font-bold flex items-center gap-2">
+              <Crown className="h-6 w-6 text-amber-500" />
+              Pronia Premium
+            </h2>
+            <button
+              onClick={onClose}
+              className="text-muted-foreground hover:text-foreground"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
 
-            <div className="p-4">
-              <div className="flex items-center gap-3 mb-4">
-                <Palette className="h-5 w-5 text-muted-foreground" />
-                <span className="font-medium">Theme Color</span>
-                {!canUseThemes && (
-                  <span className="ml-auto flex items-center gap-1 text-xs bg-gradient-to-r from-amber-500 to-orange-500 text-white px-2 py-0.5 rounded-full">
-                    <Crown className="h-3 w-3" />
-                    Premium
-                  </span>
-                )}
-              </div>
+          <div className="space-y-4 mb-6">
+            <p className="text-muted-foreground">
+              Unlock all premium features and take your practice to the next level
+            </p>
 
-              <div className="flex gap-3 mt-2">
-                {themeColors.map((theme) => (
-                  <button
-                    key={theme.id}
-                    onClick={() => handleColorChange(theme.id)}
-                    className={`relative w-10 h-10 rounded-full transition-all ${
-                      color === theme.id
-                        ? "ring-2 ring-offset-2 ring-accent scale-110"
-                        : "hover:scale-105"
-                    } ${
-                      !canUseThemes && theme.id !== "default" ? "opacity-50" : ""
-                    }`}
-                    style={{
-                      backgroundColor:
-                        mode === "dark" ? theme.darkColor : theme.color,
-                    }}
-                    title={theme.name}
-                  >
-                    {!canUseThemes && theme.id !== "default" && (
-                      <Lock className="absolute inset-0 m-auto h-4 w-4 text-white" />
-                    )}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </Card>
-        </div>
-
-        {/* Notifications */}
-        <div>
-          <h2 className="text-sm font-semibold text-muted-foreground mb-3 uppercase tracking-wide">
-            Notifications
-          </h2>
-          <Card className="divide-y divide-border">
-            <div className="p-4 flex items-center justify-between">
-              <span className="font-medium">Push Notifications</span>
-              <Switch
-                checked={pushNotifications}
-                onCheckedChange={setPushNotifications}
-              />
-            </div>
-            <div className="p-4 flex items-center justify-between">
-              <span className="font-medium">Email Updates</span>
-              <Switch
-                checked={emailUpdates}
-                onCheckedChange={setEmailUpdates}
-              />
-            </div>
-          </Card>
-        </div>
-
-        {/* Subscription */}
-        <div>
-          <h2 className="text-sm font-semibold text-muted-foreground mb-3 uppercase tracking-wide">
-            Subscription
-          </h2>
-          <Card className="p-4">
-            {isPremium ? (
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-semibold text-accent">Premium Active</p>
-                  <p className="text-sm text-muted-foreground">
-                    You have full access to all features
-                  </p>
+            <div className="space-y-3">
+              {features.map((feature) => (
+                <div key={feature} className="flex items-center gap-3">
+                  <div className="h-5 w-5 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
+                    <Check className="h-3 w-3 text-green-600" />
+                  </div>
+                  <span className="text-sm">{feature}</span>
                 </div>
-                <Crown className="h-6 w-6 text-amber-500" />
-              </div>
-            ) : isTrialActive ? (
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-semibold text-accent">Trial Active</p>
-                  <p className="text-sm text-muted-foreground">
-                    Enjoying premium features
-                  </p>
-                </div>
-                <Crown className="h-6 w-6 text-amber-500" />
-              </div>
-            ) : (
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-semibold">Free Plan</p>
-                  <p className="text-sm text-muted-foreground">
-                    Upgrade to unlock all features
-                  </p>
-                </div>
-                <button
-                  onClick={() => setShowPaywall(true)}
-                  className="px-4 py-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-lg font-semibold text-sm"
-                >
-                  Upgrade
-                </button>
-              </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            {!hasUsedTrial && onStartTrial && (
+              <Button
+                onClick={onStartTrial}
+                className="w-full h-12 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-semibold"
+              >
+                Start 7-Day Free Trial
+              </Button>
             )}
-          </Card>
-        </div>
-      </div>
 
-      <PaywallModal
-        isOpen={showPaywall}
-        onClose={() => setShowPaywall(false)}
-        onStartTrial={handleStartTrial}
-        onSubscribe={handleSubscribe}
-        hasUsedTrial={hasUsedTrial}
-      />
-    </Layout>
+            {onSubscribe && (
+              <Button
+                onClick={onSubscribe}
+                variant={hasUsedTrial ? "default" : "outline"}
+                className="w-full h-12"
+              >
+                {hasUsedTrial ? "Subscribe Now" : "Subscribe Without Trial"}
+              </Button>
+            )}
+
+            <p className="text-xs text-center text-muted-foreground">
+              Cancel anytime. No credit card required for trial.
+            </p>
+          </div>
+        </div>
+      </Card>
+    </div>
   );
 }
+
+export default PaywallModal;
