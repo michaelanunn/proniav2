@@ -12,13 +12,12 @@ import {
   Play, 
   Square, 
   Check, 
-  Mic, 
-  MicOff, 
   Lock, 
   Clock,
-  Pause
+  Pause,
+  Youtube
 } from "lucide-react";
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 
 export default function Record() {
   const { isPremium, isTrialActive, trialDaysRemaining, hasUsedTrial, startTrial, openPaywall, isPaywallOpen, closePaywall, upgradeToPremium } = usePremium();
@@ -29,21 +28,13 @@ export default function Record() {
   const [isPaused, setIsPaused] = useState(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   
-  const [isRecording, setIsRecording] = useState(false);
-  const [permissionDenied, setPermissionDenied] = useState(false);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const audioChunksRef = useRef<Blob[]>([]);
-  const videoRef = useRef<HTMLVideoElement | null>(null);
-  const [mediaStream, setMediaStream] = useState<MediaStream | null>(null);
-  
   const [showSaveForm, setShowSaveForm] = useState(false);
   const [practiceData, setPracticeData] = useState({
     piece: "",
     composer: "",
     notes: "",
+    youtubeUrl: "",
   });
-
-  const canRecord = isPremium || isTrialActive;
 
   const formatTime = (seconds: number) => {
     const hrs = Math.floor(seconds / 3600);
@@ -74,63 +65,6 @@ export default function Record() {
     };
   }, [isTimerRunning, isPaused]);
 
-  const requestMediaPermission = useCallback(async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
-      setPermissionDenied(false);
-      setMediaStream(stream);
-      return stream;
-    } catch {
-      setPermissionDenied(true);
-      return null;
-    }
-  }, []);
-
-  const startRecording = async () => {
-    if (!canRecord) {
-      openPaywall();
-      return;
-    }
-
-    const stream = await requestMediaPermission();
-    if (!stream) return;
-
-    if (videoRef.current) {
-      videoRef.current.srcObject = stream;
-      videoRef.current.play();
-    }
-
-    try {
-      const mediaRecorder = new MediaRecorder(stream);
-      mediaRecorderRef.current = mediaRecorder;
-      audioChunksRef.current = [];
-
-      mediaRecorder.ondataavailable = (event) => {
-        audioChunksRef.current.push(event.data);
-      };
-
-      mediaRecorder.start();
-      setIsRecording(true);
-    } catch (err) {
-      console.error("Failed to start recording:", err);
-    }
-  };
-
-  const stopRecording = () => {
-    if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.stop();
-      mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
-      setIsRecording(false);
-    }
-    if (mediaStream) {
-      mediaStream.getTracks().forEach(track => track.stop());
-      setMediaStream(null);
-    }
-    if (videoRef.current) {
-      videoRef.current.srcObject = null;
-    }
-  };
-
   const handleStartPractice = () => {
     setIsTimerRunning(true);
     setIsPaused(false);
@@ -144,7 +78,6 @@ export default function Record() {
   const handleEndPractice = () => {
     setIsTimerRunning(false);
     setIsPaused(false);
-    stopRecording();
     setShowSaveForm(true);
   };
 
@@ -155,17 +88,18 @@ export default function Record() {
       piece: practiceData.piece || undefined,
       composer: practiceData.composer || undefined,
       notes: practiceData.notes || undefined,
+      youtubeUrl: practiceData.youtubeUrl || undefined,
     });
     
     setShowSaveForm(false);
     setElapsedTime(0);
-    setPracticeData({ piece: "", composer: "", notes: "" });
+    setPracticeData({ piece: "", composer: "", notes: "", youtubeUrl: "" });
   };
 
   const handleDiscardPractice = () => {
     setShowSaveForm(false);
     setElapsedTime(0);
-    setPracticeData({ piece: "", composer: "", notes: "" });
+    setPracticeData({ piece: "", composer: "", notes: "", youtubeUrl: "" });
   };
 
   const handleStartTrial = () => {
@@ -222,17 +156,6 @@ export default function Record() {
                     : "Ready to practice"
                   }
                 </p>
-                {/* Video Preview */}
-                <div className="flex justify-center mt-4">
-                  <video
-                    ref={videoRef}
-                    width={240}
-                    height={180}
-                    autoPlay
-                    muted
-                    style={{ background: '#222', borderRadius: 12, display: isRecording || mediaStream ? 'block' : 'none' }}
-                  />
-                </div>
               </div>
 
               <div className="flex flex-col gap-3">
@@ -279,76 +202,6 @@ export default function Record() {
               </div>
             </Card>
 
-            <Card className="p-6 mb-6">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  <div className={`h-10 w-10 rounded-full flex items-center justify-center ${
-                    isRecording 
-                      ? "bg-red-100" 
-                      : canRecord 
-                        ? "bg-muted" 
-                        : "bg-gray-100"
-                  }`}>
-                    {isRecording ? (
-                      <Mic className="h-5 w-5 text-red-600 animate-pulse" />
-                    ) : canRecord ? (
-                      <Mic className="h-5 w-5" />
-                    ) : (
-                      <Lock className="h-5 w-5 text-gray-400" />
-                    )}
-                  </div>
-                  <div>
-                    <h3 className="font-semibold">Record Practice</h3>
-                    <p className="text-xs text-muted-foreground">
-                      {canRecord 
-                        ? "Capture audio of your session" 
-                        : "Premium feature"
-                      }
-                    </p>
-                  </div>
-                </div>
-                
-                {!canRecord ? (
-                  <Button 
-                    size="sm" 
-                    className="bg-gradient-to-r from-orange-500 to-amber-500 text-white"
-                    onClick={openPaywall}
-                  >
-                    {hasUsedTrial ? "Upgrade" : "Try Free"}
-                  </Button>
-                ) : isTimerRunning ? (
-                  <Button
-                    size="sm"
-                    variant={isRecording ? "destructive" : "default"}
-                    onClick={isRecording ? stopRecording : startRecording}
-                    disabled={permissionDenied}
-                  >
-                    {isRecording ? (
-                      <>
-                        <MicOff className="mr-1 h-4 w-4" />
-                        Stop
-                      </>
-                    ) : (
-                      <>
-                        <Mic className="mr-1 h-4 w-4" />
-                        Record
-                      </>
-                    )}
-                  </Button>
-                ) : (
-                  <span className="text-xs text-muted-foreground">Start practice first</span>
-                )}
-              </div>
-
-              {permissionDenied && (
-                <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-                  <p className="text-sm text-red-700">
-                    Microphone access denied. Please enable it in your browser settings.
-                  </p>
-                </div>
-              )}
-            </Card>
-
             <Card className="p-6">
               <h2 className="text-lg font-semibold mb-4">Recent Practice Sessions</h2>
               {recentSessions.length === 0 ? (
@@ -375,6 +228,9 @@ export default function Record() {
                           {new Date(session.date).toLocaleDateString()} • {formatTime(session.duration)}
                         </p>
                       </div>
+                      {session.youtubeUrl && (
+                        <Youtube className="h-5 w-5 text-red-600" />
+                      )}
                     </div>
                   ))}
                 </div>
@@ -424,6 +280,23 @@ export default function Record() {
                 />
               </div>
 
+              <div>
+                <label className="text-sm font-medium mb-2 block">
+                  <div className="flex items-center gap-2">
+                    <Youtube className="h-4 w-4 text-red-600" />
+                    YouTube Video Link (optional)
+                  </div>
+                </label>
+                <Input 
+                  placeholder="https://youtube.com/watch?v=..."
+                  value={practiceData.youtubeUrl}
+                  onChange={(e) => setPracticeData(prev => ({ ...prev, youtubeUrl: e.target.value }))}
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Share your practice session by adding a YouTube link
+                </p>
+              </div>
+
               <div className="flex gap-3 pt-4">
                 <Button 
                   variant="outline" 
@@ -447,4 +320,3 @@ export default function Record() {
     </Layout>
   );
 }
-
