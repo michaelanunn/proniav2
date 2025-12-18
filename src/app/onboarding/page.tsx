@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useRouter } from "next/navigation";
-import { Piano, Guitar, Mic, User, Loader2, Eye, EyeOff, Camera, Upload } from "lucide-react";
+import { Piano, Guitar, Mic, User, Loader2, Eye, EyeOff } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
 const instruments = [
@@ -15,6 +15,15 @@ const instruments = [
   { id: "drums", name: "Drums", icon: Mic },
   { id: "bass", name: "Bass", icon: Guitar },
   { id: "vocals", name: "Vocals", icon: Mic },
+];
+
+const popularPieces = [
+  { id: 1, title: "Moonlight Sonata", composer: "Beethoven", level: "intermediate" },
+  { id: 2, title: "Für Elise", composer: "Beethoven", level: "beginner" },
+  { id: 3, title: "Clair de Lune", composer: "Debussy", level: "intermediate" },
+  { id: 4, title: "Prelude in C Major", composer: "Bach", level: "beginner" },
+  { id: 5, title: "Nocturne Op. 9 No. 2", composer: "Chopin", level: "intermediate" },
+  { id: 6, title: "Turkish March", composer: "Mozart", level: "intermediate" },
 ];
 
 const experienceLevels = [
@@ -27,16 +36,15 @@ export default function Onboarding() {
   const router = useRouter();
   const { user, profile, isLoading, signInWithGoogle, signUpWithEmail, updateProfile } = useAuth();
   const [step, setStep] = useState(0);
+  const [showVerification, setShowVerification] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [name, setName] = useState("");
   const [username, setUsername] = useState("");
   const [selectedInstruments, setSelectedInstruments] = useState<string[]>([]);
   const [experienceLevel, setExperienceLevel] = useState<string>("");
+  const [selectedPieces, setSelectedPieces] = useState<number[]>([]);
+  const [bio, setBio] = useState("");
   const [yearsPlaying, setYearsPlaying] = useState("");
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [onboardingComplete, setOnboardingComplete] = useState(false);
 
   // Email signup states
   const [showEmailForm, setShowEmailForm] = useState(false);
@@ -47,41 +55,25 @@ export default function Onboarding() {
   const [authError, setAuthError] = useState("");
 
   useEffect(() => {
-    // If we've marked onboarding as complete, don't interfere with redirect
-    if (onboardingComplete) return;
-    
-    // If user is logged in but profile is missing, show step 1 immediately
-    if (user && !profile && !isLoading && step === 0) {
-      setStep(1);
-      return;
-    }
-    
     if (profile) {
-      // Only set values from profile if we haven't started editing yet (step 0)
-      if (step === 0) {
-        setName(profile.name || "");
-        setUsername(profile.username || "");
-        setSelectedInstruments(profile.instruments || []);
-        setExperienceLevel(profile.experience_level || "");
-        setYearsPlaying(profile.years_playing || "");
-        setAvatarUrl(profile.avatar_url || null);
-      }
-      
+      setName(profile.name || "");
+      setUsername(profile.username || "");
+      setSelectedInstruments(profile.instruments || []);
+      setExperienceLevel(profile.experience_level || "");
+      setBio(profile.bio || "");
+      setYearsPlaying(profile.years_playing || "");
       const hasAllFields =
         profile.name?.trim() &&
         profile.username?.trim() &&
         Array.isArray(profile.instruments) && profile.instruments.length > 0 &&
         profile.experience_level?.trim();
-      
-      // Only redirect to feed if ALL onboarding fields are complete AND we're at step 0
-      if (hasAllFields && step === 0) {
+      if (hasAllFields) {
         router.push("/feed");
-      } else if (step === 0) {
-        // Advance to step 1 if we're still at step 0
+      } else {
         setStep(1);
       }
     }
-  }, [user, profile, isLoading, router, step, onboardingComplete]);
+  }, [profile, router]);
 
   const toggleInstrument = (id: string) => {
     if (selectedInstruments.includes(id)) {
@@ -91,75 +83,38 @@ export default function Onboarding() {
     }
   };
 
-  const handleNext = async () => {
-    // If at step 0 with user (showing step 1 content), go to step 2
-    const effectiveStep = (step === 0 && user) ? 1 : step;
-    
-    if (effectiveStep < 4) {
-      setStep(effectiveStep + 1);
-    } else {
-      // Final step - save everything and redirect
-      setIsSaving(true);
-      setOnboardingComplete(true); // Prevent useEffect from interfering
-      try {
-        const updateResult = await updateProfile({
-          name: name.trim(),
-          username: username.trim(),
-          instruments: selectedInstruments,
-          experience_level: experienceLevel,
-          years_playing: yearsPlaying,
-          avatar_url: avatarUrl,
-        });
-
-        // If updateProfile returns a result, check for errors
-        if (updateResult && updateResult.error) {
-          console.error("Supabase updateProfile error:", updateResult.error);
-          setAuthError("Failed to save profile: " + (updateResult.error.message || "Unknown error"));
-          setIsSaving(false);
-          setOnboardingComplete(false);
-          return;
-        }
-
-        // Redirect immediately
-        router.push("/feed");
-      } catch (error) {
-        console.error("Error saving profile:", error);
-        setAuthError("Failed to save profile. Please try again. " + (error?.message || ""));
-        setIsSaving(false);
-        setOnboardingComplete(false);
-      }
+  const togglePiece = (id: number) => {
+    if (selectedPieces.includes(id)) {
+      setSelectedPieces(selectedPieces.filter((p) => p !== id));
+    } else if (selectedPieces.length < 3) {
+      setSelectedPieces([...selectedPieces, id]);
     }
   };
 
-  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const filteredPieces = experienceLevel
+    ? popularPieces.filter((p) => p.level === experienceLevel)
+    : popularPieces;
 
-    // Check file size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      setAuthError("Image must be less than 5MB");
-      return;
-    }
-
-    setIsUploading(true);
-    setAuthError("");
-
-    try {
-      // Convert to base64 for preview (in production, upload to storage)
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        setAvatarUrl(event.target?.result as string);
-        setIsUploading(false);
-      };
-      reader.onerror = () => {
-        setAuthError("Failed to read image");
-        setIsUploading(false);
-      };
-      reader.readAsDataURL(file);
-    } catch (error) {
-      console.error("Upload error:", error);
-      setAuthError("Failed to upload image");
-      setIsUploading(false);
+  const handleNext = async () => {
+    if (step < 4) {
+      setStep(step + 1);
+    } else {
+      setIsSaving(true);
+      try {
+        await updateProfile({
+          name,
+          username,
+          instruments: selectedInstruments,
+          experience_level: experienceLevel,
+          bio,
+          years_playing: yearsPlaying,
+        });
+        router.push("/feed");
+      } catch (error) {
+        console.error("Error saving profile:", error);
+      } finally {
+        setIsSaving(false);
+      }
     }
   };
 
@@ -168,7 +123,6 @@ export default function Onboarding() {
       await signInWithGoogle();
     } catch (error) {
       console.error("Sign in error:", error);
-      setAuthError("Google sign-in failed. Please try again.");
     }
   };
 
@@ -176,6 +130,7 @@ export default function Onboarding() {
     e.preventDefault();
     setAuthError("");
     setIsSaving(true);
+
     try {
       if (!signupName.trim()) {
         setAuthError("Please enter your name");
@@ -183,33 +138,15 @@ export default function Onboarding() {
         return;
       }
       await signUpWithEmail(email, password, signupName);
-      // Signup succeeded - reset saving state and move to step 1
-      setIsSaving(false);
-      setName(signupName);
-      setStep(1);
+      // Profile setup will happen automatically after signup via useEffect
     } catch (error: any) {
-      console.error("Signup error:", error);
-      if (
-        error.message &&
-        error.message.toLowerCase().includes("email") &&
-        error.message.toLowerCase().includes("already")
-      ) {
-        setAuthError("That email is already tied to an existing account. Redirecting to login...");
-        setTimeout(() => {
-          router.push("/login");
-        }, 2500);
-      } else {
-        setAuthError(error.message || "Signup failed. Please try again.");
-      }
+      setAuthError(error.message || "Signup failed");
       setIsSaving(false);
     }
   };
 
   const canProceed = () => {
-    // If logged in at step 0, treat it as step 1
-    const effectiveStep = (step === 0 && user) ? 1 : step;
-    
-    switch (effectiveStep) {
+    switch (step) {
       case 0:
         return false;
       case 1:
@@ -217,15 +154,14 @@ export default function Onboarding() {
       case 2:
         return selectedInstruments.length > 0;
       case 3:
-        return experienceLevel.trim().length > 0;
+        return selectedPieces.length === 3;
       case 4:
-        return true; // Profile pic is optional
+        return true;
       default:
         return false;
     }
   };
 
-  // Show loading only while auth is being checked
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -244,10 +180,27 @@ export default function Onboarding() {
           PRONIA
         </h1>
         <Card className="p-6">
-          {/* Step 0: Sign Up / Google - show when not logged in */}
-          {!user && (
+          {showVerification && (
             <div className="space-y-6">
-              <h2 className="text-xl font-semibold text-center">Join Pronia</h2>
+              <h2 className="text-xl font-semibold text-center">Check your email</h2>
+              <p className="text-sm text-muted-foreground text-center">
+                We&apos;ve sent a magic link to <span className="font-semibold">{user?.email}</span>.<br />
+                Please click the link in your email to verify your account and continue.
+              </p>
+              <Button
+                onClick={() => router.push("/feed")}
+                className="w-full h-12 bg-black hover:bg-gray-800 text-white font-semibold"
+              >
+                Continue
+              </Button>
+            </div>
+          )}
+
+          {!showVerification && step === 0 && !user && (
+            <div className="space-y-6">
+              <h2 className="text-xl font-semibold text-center">
+                {showEmailForm ? "Create Account" : "Join Pronia"}
+              </h2>
               <p className="text-sm text-muted-foreground text-center">
                 Connect with musicians and track your practice journey
               </p>
@@ -323,7 +276,7 @@ export default function Onboarding() {
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         required
-                        minLength={8}
+                        minLength={6}
                         className="bg-gray-50 border-gray-200 pr-10"
                       />
                       <button
@@ -334,7 +287,6 @@ export default function Onboarding() {
                         {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                       </button>
                     </div>
-                    <p className="text-xs text-muted-foreground mt-1">Password must be at least 8 characters long.</p>
                   </div>
 
                   {authError && (
@@ -356,8 +308,7 @@ export default function Onboarding() {
                   <button
                     type="button"
                     onClick={() => setShowEmailForm(false)}
-                    disabled={isSaving}
-                    className="w-full text-sm text-muted-foreground hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full text-sm text-muted-foreground hover:text-foreground"
                   >
                     ← Back to options
                   </button>
@@ -366,8 +317,8 @@ export default function Onboarding() {
             </div>
           )}
 
-          {/* Step 1: Profile Setup (NO BIO) - show when logged in and at step 0 or 1 */}
-          {user && (step === 0 || step === 1) && (
+          {/* Step 1: Profile Setup */}
+          {step === 1 && (
             <div className="space-y-4">
               <h2 className="text-xl font-semibold text-center mb-6">Set up your profile</h2>
               {profile?.avatar_url && (
@@ -398,6 +349,14 @@ export default function Onboarding() {
                     className="pl-8"
                   />
                 </div>
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-2 block">Bio</label>
+                <Input
+                  placeholder="Tell us about yourself"
+                  value={bio}
+                  onChange={(e) => setBio(e.target.value)}
+                />
               </div>
               <div>
                 <label className="text-sm font-medium mb-2 block">Years Playing</label>
@@ -441,94 +400,76 @@ export default function Onboarding() {
             </div>
           )}
 
-          {/* Step 3: Experience Level */}
+          {/* Step 3: Pieces */}
           {step === 3 && (
             <div className="space-y-4">
-              <h2 className="text-xl font-semibold text-center mb-2">What's your level?</h2>
-              <p className="text-sm text-muted-foreground text-center mb-6">
-                Select your experience level
+              <h2 className="text-xl font-semibold text-center mb-2">Pick 3 pieces</h2>
+              <p className="text-sm text-muted-foreground text-center mb-4">
+                What pieces are you working on?
               </p>
 
-              <div className="space-y-3">
+              <div className="flex gap-2 mb-4 overflow-x-auto pb-2">
                 {experienceLevels.map((level) => (
-                  <button
+                  <Button
                     key={level.id}
+                    variant={experienceLevel === level.id ? "default" : "outline"}
+                    size="sm"
                     onClick={() => setExperienceLevel(level.id)}
-                    className={`w-full p-4 rounded-lg border-2 text-left transition-colors ${
-                      experienceLevel === level.id
-                        ? "border-foreground bg-muted"
-                        : "border-border hover:border-foreground/50"
-                    }`}
+                    className="whitespace-nowrap"
                   >
-                    <p className="font-semibold">{level.label}</p>
-                  </button>
+                    {level.label}
+                  </Button>
                 ))}
               </div>
-
-              {authError && (
-                <p className="text-sm text-red-500 text-center mt-4">{authError}</p>
-              )}
+              
+              <div className="space-y-2 max-h-80 overflow-y-auto">
+                {filteredPieces.map((piece) => {
+                  const isSelected = selectedPieces.includes(piece.id);
+                  return (
+                    <button
+                      key={piece.id}
+                      onClick={() => togglePiece(piece.id)}
+                      className={`w-full p-3 rounded-lg border text-left transition-colors ${
+                        isSelected
+                          ? "border-foreground bg-muted"
+                          : "border-border hover:border-foreground/50"
+                      }`}
+                    >
+                      <p className="font-semibold text-sm">{piece.title}</p>
+                      <p className="text-xs text-muted-foreground">{piece.composer}</p>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           )}
 
-          {/* Step 4: Profile Picture */}
+          {/* Step 4: Complete */}
           {step === 4 && (
-            <div className="space-y-4">
-              <h2 className="text-xl font-semibold text-center mb-2">Add a profile picture</h2>
-              <p className="text-sm text-muted-foreground text-center mb-6">
-                Help others recognize you (optional)
-              </p>
-
-              <div className="flex flex-col items-center gap-4">
-                <div 
-                  className="h-32 w-32 rounded-full bg-muted flex items-center justify-center overflow-hidden border-2 border-dashed border-border cursor-pointer hover:border-foreground/50 transition-colors"
-                  onClick={() => fileInputRef.current?.click()}
-                >
-                  {isUploading ? (
-                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                  ) : avatarUrl ? (
-                    <img src={avatarUrl} alt="Profile" className="h-full w-full object-cover" />
-                  ) : (
-                    <Camera className="h-10 w-10 text-muted-foreground" />
-                  )}
-                </div>
-
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={handleAvatarUpload}
-                  className="hidden"
-                />
-
-                <Button
-                  variant="outline"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={isUploading}
-                  className="gap-2"
-                >
-                  <Upload className="h-4 w-4" />
-                  {avatarUrl ? "Change Photo" : "Upload Photo"}
-                </Button>
-
-                {avatarUrl && (
-                  <button
-                    onClick={() => setAvatarUrl(null)}
-                    className="text-sm text-muted-foreground hover:text-foreground"
-                  >
-                    Remove photo
-                  </button>
+            <div className="space-y-4 text-center">
+              <div className="flex justify-center mb-4">
+                {profile?.avatar_url ? (
+                  <img 
+                    src={profile.avatar_url} 
+                    alt="Profile"
+                    className="h-24 w-24 rounded-full object-cover"
+                  />
+                ) : (
+                  <div className="h-24 w-24 rounded-full bg-muted flex items-center justify-center">
+                    <User className="h-12 w-12 text-muted-foreground" />
+                  </div>
                 )}
               </div>
-
-              {authError && (
-                <p className="text-sm text-red-500 text-center mt-4">{authError}</p>
-              )}
+              
+              <h2 className="text-xl font-semibold">You&apos;re all set, {name}!</h2>
+              <p className="text-sm text-muted-foreground">
+                Welcome to Pronia. Start tracking your practice and connecting with other musicians.
+              </p>
             </div>
           )}
 
           {/* Navigation Buttons */}
-          {(step > 0 || user) && (
+          {step > 0 && (
             <>
               <div className="mt-6 flex gap-3">
                 {step > 1 && (
@@ -536,20 +477,21 @@ export default function Onboarding() {
                     variant="outline"
                     onClick={() => setStep(step - 1)}
                     className="flex-1"
-                    disabled={isSaving || isUploading}
                   >
                     Back
                   </Button>
                 )}
                 <Button
                   onClick={handleNext}
-                  disabled={!canProceed() || isSaving || isUploading}
+                  disabled={!canProceed() || isSaving}
                   className="flex-1"
                 >
                   {isSaving ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : step === 4 ? (
                     "Get Started"
+                  ) : step === 3 && selectedPieces.length < 3 ? (
+                    `Selected ${selectedPieces.length}/3`
                   ) : (
                     "Next"
                   )}
@@ -557,18 +499,14 @@ export default function Onboarding() {
               </div>
 
               <div className="flex justify-center gap-2 mt-6">
-                {[1, 2, 3, 4].map((i) => {
-                  // If at step 0 with user, treat as step 1
-                  const displayStep = (step === 0 && user) ? 1 : step;
-                  return (
-                    <div
-                      key={i}
-                      className={`h-1.5 w-6 rounded-full transition-colors ${
-                        i === displayStep ? "bg-foreground" : "bg-muted"
-                      }`}
-                    />
-                  );
-                })}
+                {[1, 2, 3, 4].map((i) => (
+                  <div
+                    key={i}
+                    className={`h-1.5 w-8 rounded-full transition-colors ${
+                      i === step ? "bg-foreground" : "bg-muted"
+                    }`}
+                  />
+                ))}
               </div>
             </>
           )}

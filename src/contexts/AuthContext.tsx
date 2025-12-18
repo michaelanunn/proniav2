@@ -1,8 +1,7 @@
 "use client";
 
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
-import { useMemo } from "react";
+import { createClient, SupabaseClient } from "@supabase/supabase-js";
 
 interface User {
   id: string;
@@ -53,7 +52,6 @@ interface AuthContextType {
   refreshProfile: () => Promise<void>;
 }
 
-const supabase = useMemo(() => createClientComponentClient(), []);
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
@@ -61,19 +59,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  const hasSupabase = !!process.env.NEXT_PUBLIC_SUPABASE_URL && !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const supabase: SupabaseClient | null = hasSupabase
+    ? createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!)
+    : null;
+
   useEffect(() => {
     let mounted = true;
 
-    // Safety timeout - force isLoading to false after 5 seconds max
-    const safetyTimeout = setTimeout(() => {
-      if (mounted) {
-        console.warn('Auth loading timeout - forcing isLoading to false');
-        setIsLoading(false);
-      }
-    }, 5000);
-
     const init = async () => {
-      if (supabase) {
+      if (hasSupabase && supabase) {
         setIsLoading(true);
         try {
           const { data } = await supabase.auth.getUser();
@@ -86,8 +81,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             };
             setUser(userObj);
 
-            // Use maybeSingle instead of single to avoid error when profile doesn't exist
-            const { data: profileData } = await supabase.from('profiles').select('*').eq('id', currentUser.id).maybeSingle();
+            const { data: profileData } = await supabase.from('profiles').select('*').eq('id', currentUser.id).single();
             if (profileData && mounted) {
               setProfile(profileData as Profile);
             }
@@ -98,8 +92,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         } catch (err) {
           console.error('Supabase init error:', err);
         } finally {
-          if (mounted) setIsLoading(false);
-          clearTimeout(safetyTimeout);
+          setIsLoading(false);
         }
 
         const { data: listener } = supabase.auth.onAuthStateChange(async (event, session) => {
@@ -109,13 +102,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             const userObj: User = { id: u.id, email: u.email || '', user_metadata: (u.user_metadata as any) || {} };
             setUser(userObj);
             try {
-              // Use maybeSingle to avoid error when profile doesn't exist yet
-              const { data: profileData } = await supabase.from('profiles').select('*').eq('id', u.id).maybeSingle();
-              if (profileData) {
-                setProfile(profileData as Profile);
-                localStorage.setItem('pronia-profile', JSON.stringify(profileData));
-              }
-              // Don't set profile to null here - it might have been set by signUpWithEmail
+              const { data: profileData } = await supabase.from('profiles').select('*').eq('id', u.id).single();
+              setProfile(profileData as Profile);
+              localStorage.setItem('pronia-profile', JSON.stringify(profileData));
             } catch (err) {
               console.error('Error fetching profile after auth change:', err);
             }
@@ -130,7 +119,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
         return () => {
           mounted = false;
-          clearTimeout(safetyTimeout);
           listener?.subscription?.unsubscribe();
         };
       } else {
@@ -142,8 +130,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         } catch (err) {
           console.error('Error loading local auth:', err);
         } finally {
-          if (mounted) setIsLoading(false);
-          clearTimeout(safetyTimeout);
+          setIsLoading(false);
         }
       }
     };
@@ -156,11 +143,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       alert('Supabase not configured. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY.');
       return;
     }
-    await supabase.auth.signInWithOAuth({
-  provider: "google",
-  options: { redirectTo: `${window.location.origin}/auth/callback` },
-});
-
+    await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.origin } });
   };
 
   const signInWithEmail = async (email: string, password: string) => {
