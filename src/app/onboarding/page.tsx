@@ -36,8 +36,10 @@ export default function Onboarding() {
   const router = useRouter();
   const { user, profile, isLoading, signInWithGoogle, signUpWithEmail, updateProfile } = useAuth();
   const [step, setStep] = useState(0);
-  const [showVerification, setShowVerification] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [hasCheckedProfile, setHasCheckedProfile] = useState(false);
+  
+  // Profile data
   const [name, setName] = useState("");
   const [username, setUsername] = useState("");
   const [selectedInstruments, setSelectedInstruments] = useState<string[]>([]);
@@ -54,26 +56,37 @@ export default function Onboarding() {
   const [showPassword, setShowPassword] = useState(false);
   const [authError, setAuthError] = useState("");
 
+  // Only check profile ONCE when component mounts
   useEffect(() => {
-    if (profile) {
+    if (!hasCheckedProfile && profile && !isLoading) {
+      console.log("Checking profile completion:", profile);
+      
       setName(profile.name || "");
       setUsername(profile.username || "");
       setSelectedInstruments(profile.instruments || []);
       setExperienceLevel(profile.experience_level || "");
       setBio(profile.bio || "");
       setYearsPlaying(profile.years_playing || "");
+      
+      // Only redirect if profile is FULLY complete
       const hasAllFields =
         profile.name?.trim() &&
         profile.username?.trim() &&
-        Array.isArray(profile.instruments) && profile.instruments.length > 0 &&
+        Array.isArray(profile.instruments) && 
+        profile.instruments.length > 0 &&
         profile.experience_level?.trim();
+      
       if (hasAllFields) {
+        console.log("Profile complete, redirecting to feed");
         router.push("/feed");
       } else {
+        console.log("Profile incomplete, starting onboarding at step 1");
         setStep(1);
       }
+      
+      setHasCheckedProfile(true);
     }
-  }, [profile, router]);
+  }, [profile, isLoading, hasCheckedProfile, router]);
 
   const toggleInstrument = (id: string) => {
     if (selectedInstruments.includes(id)) {
@@ -100,6 +113,8 @@ export default function Onboarding() {
       setStep(step + 1);
     } else {
       setIsSaving(true);
+      setAuthError("");
+      
       try {
         await updateProfile({
           name,
@@ -109,10 +124,12 @@ export default function Onboarding() {
           bio,
           years_playing: yearsPlaying,
         });
+        
+        console.log("Profile saved, redirecting to feed");
         router.push("/feed");
-      } catch (error) {
-        console.error("Error saving profile:", error);
-      } finally {
+      } catch (error: any) {
+        console.error("Profile save error:", error);
+        setAuthError(error?.message || "Failed to save profile");
         setIsSaving(false);
       }
     }
@@ -122,7 +139,8 @@ export default function Onboarding() {
     try {
       await signInWithGoogle();
     } catch (error) {
-      console.error("Sign in error:", error);
+      console.error("Google sign in error:", error);
+      setAuthError("Google sign-in failed. Please try again.");
     }
   };
 
@@ -137,10 +155,22 @@ export default function Onboarding() {
         setIsSaving(false);
         return;
       }
+      
       await signUpWithEmail(email, password, signupName);
-      // Profile setup will happen automatically after signup via useEffect
+      // Don't do anything here - the useEffect will handle moving to step 1
+      setIsSaving(false);
     } catch (error: any) {
-      setAuthError(error.message || "Signup failed");
+      console.error("Signup error:", error);
+      
+      // Better error messages
+      if (error.message?.includes("5 seconds")) {
+        setAuthError("Please wait a few seconds before trying again");
+      } else if (error.message?.includes("already registered")) {
+        setAuthError("This email is already registered. Try logging in instead.");
+      } else {
+        setAuthError(error.message || "Signup failed. Please try again.");
+      }
+      
       setIsSaving(false);
     }
   };
@@ -162,7 +192,7 @@ export default function Onboarding() {
     }
   };
 
-  if (isLoading) {
+  if (isLoading || (profile && !hasCheckedProfile)) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -180,27 +210,10 @@ export default function Onboarding() {
           PRONIA
         </h1>
         <Card className="p-6">
-          {showVerification && (
+          {/* Step 0: Sign Up Options */}
+          {step === 0 && !user && (
             <div className="space-y-6">
-              <h2 className="text-xl font-semibold text-center">Check your email</h2>
-              <p className="text-sm text-muted-foreground text-center">
-                We&apos;ve sent a magic link to <span className="font-semibold">{user?.email}</span>.<br />
-                Please click the link in your email to verify your account and continue.
-              </p>
-              <Button
-                onClick={() => router.push("/feed")}
-                className="w-full h-12 bg-black hover:bg-gray-800 text-white font-semibold"
-              >
-                Continue
-              </Button>
-            </div>
-          )}
-
-          {!showVerification && step === 0 && !user && (
-            <div className="space-y-6">
-              <h2 className="text-xl font-semibold text-center">
-                {showEmailForm ? "Create Account" : "Join Pronia"}
-              </h2>
+              <h2 className="text-xl font-semibold text-center">Join Pronia</h2>
               <p className="text-sm text-muted-foreground text-center">
                 Connect with musicians and track your practice journey
               </p>
@@ -290,7 +303,9 @@ export default function Onboarding() {
                   </div>
 
                   {authError && (
-                    <p className="text-sm text-red-500">{authError}</p>
+                    <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                      <p className="text-sm text-red-600">{authError}</p>
+                    </div>
                   )}
 
                   <Button
@@ -307,7 +322,10 @@ export default function Onboarding() {
 
                   <button
                     type="button"
-                    onClick={() => setShowEmailForm(false)}
+                    onClick={() => {
+                      setShowEmailForm(false);
+                      setAuthError("");
+                    }}
                     className="w-full text-sm text-muted-foreground hover:text-foreground"
                   >
                     ← Back to options
@@ -465,6 +483,12 @@ export default function Onboarding() {
               <p className="text-sm text-muted-foreground">
                 Welcome to Pronia. Start tracking your practice and connecting with other musicians.
               </p>
+
+              {authError && (
+                <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                  <p className="text-sm text-red-600">{authError}</p>
+                </div>
+              )}
             </div>
           )}
 
@@ -477,6 +501,7 @@ export default function Onboarding() {
                     variant="outline"
                     onClick={() => setStep(step - 1)}
                     className="flex-1"
+                    disabled={isSaving}
                   >
                     Back
                   </Button>
