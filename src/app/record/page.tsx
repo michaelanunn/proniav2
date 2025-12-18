@@ -5,14 +5,10 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { PaywallModal } from "@/components/PaywallModal";
-import { usePremium } from "@/contexts/PremiumContext";
-import { usePractice } from "@/contexts/PracticeContext";
 import { 
   Play, 
   Square, 
   Check, 
-  Lock, 
   Clock,
   Pause,
   Youtube
@@ -20,13 +16,11 @@ import {
 import { useState, useEffect, useRef } from "react";
 
 export default function Record() {
-  const { isPremium, isTrialActive, trialDaysRemaining, hasUsedTrial, startTrial, openPaywall, isPaywallOpen, closePaywall, upgradeToPremium } = usePremium();
-  const { addSession, sessions } = usePractice();
-  
+  const [sessions, setSessions] = useState([]);
   const [isTimerRunning, setIsTimerRunning] = useState(false);
   const [elapsedTime, setElapsedTime] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const intervalRef = useRef(null);
   
   const [showSaveForm, setShowSaveForm] = useState(false);
   const [practiceData, setPracticeData] = useState({
@@ -36,7 +30,7 @@ export default function Record() {
     youtubeUrl: "",
   });
 
-  const formatTime = (seconds: number) => {
+  const formatTime = (seconds) => {
     const hrs = Math.floor(seconds / 3600);
     const mins = Math.floor((seconds % 3600) / 60);
     const secs = seconds % 60;
@@ -82,14 +76,17 @@ export default function Record() {
   };
 
   const handleSaveLog = () => {
-    addSession({
+    const newSession = {
+      id: Date.now(),
       date: new Date().toISOString(),
       duration: elapsedTime,
-      piece: practiceData.piece || undefined,
-      composer: practiceData.composer || undefined,
-      notes: practiceData.notes || undefined,
-      youtubeUrl: practiceData.youtubeUrl || undefined,
-    });
+      piece: practiceData.piece || "Practice Session",
+      composer: practiceData.composer || "",
+      notes: practiceData.notes || "",
+      youtubeUrl: practiceData.youtubeUrl || "",
+    };
+
+    setSessions([newSession, ...sessions]);
     
     setShowSaveForm(false);
     setElapsedTime(0);
@@ -102,45 +99,11 @@ export default function Record() {
     setPracticeData({ piece: "", composer: "", notes: "", youtubeUrl: "" });
   };
 
-  const handleStartTrial = () => {
-    startTrial();
-    closePaywall();
-  };
-
   const recentSessions = sessions.slice(0, 5);
 
   return (
-    <Layout streak={7} showBranding={true}>
-      <PaywallModal
-        isOpen={isPaywallOpen}
-        onClose={closePaywall}
-        onStartTrial={handleStartTrial}
-        onSubscribe={upgradeToPremium}
-        hasUsedTrial={hasUsedTrial}
-      />
-      
+    <Layout streak={0}>
       <div className="max-w-2xl mx-auto px-4 py-6">
-        {isTrialActive && !isPremium && (
-          <div className="mb-4 p-3 bg-gradient-to-r from-orange-50 to-amber-50 border border-orange-200 rounded-xl">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Clock className="h-4 w-4 text-orange-600" />
-                <span className="text-sm font-medium text-orange-800">
-                  Trial: {trialDaysRemaining} day{trialDaysRemaining !== 1 ? "s" : ""} remaining
-                </span>
-              </div>
-              <Button 
-                size="sm" 
-                variant="ghost" 
-                className="text-orange-600 hover:text-orange-700 hover:bg-orange-100 h-7 text-xs"
-                onClick={openPaywall}
-              >
-                Upgrade
-              </Button>
-            </div>
-          </div>
-        )}
-
         {!showSaveForm ? (
           <>
             <Card className="p-8 mb-6 text-center">
@@ -222,7 +185,7 @@ export default function Record() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="font-medium truncate">
-                          {session.piece || "Practice Session"}
+                          {session.piece}
                         </p>
                         <p className="text-sm text-muted-foreground">
                           {new Date(session.date).toLocaleDateString()} • {formatTime(session.duration)}
