@@ -1,4 +1,3 @@
-//login page.tsx
 "use client";
 
 import { useState } from "react";
@@ -33,7 +32,6 @@ export default function Login() {
     setError("");
     setIsLoading(true);
 
-    // Add a short delay for UI flow/complexity
     await new Promise((resolve) => setTimeout(resolve, 900));
 
     try {
@@ -53,34 +51,33 @@ export default function Login() {
       <div className="max-w-md w-full">
         <h1
           className="text-4xl md:text-5xl font-extrabold text-center mb-2 text-black tracking-tight"
-          style={{ fontFamily: 'Times New Roman, serif', textTransform: 'uppercase' }}
+          style={{ fontFamily: 'Times New Roman, serif' }}
         >
           PRONIA
         </h1>
-        <p className="text-center text-gray-600 mb-8 text-lg font-medium" style={{ fontFamily: 'Times New Roman, serif', textTransform: 'uppercase' }}>
-          WELCOME BACK
+        <p className="text-center text-gray-600 mb-8 text-lg font-medium">
+          Welcome Back
         </p>
 
         <Card className="p-6 border border-gray-200">
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="text-sm font-medium text-gray-700 mb-1 block" style={{ fontFamily: 'Times New Roman, serif', textTransform: 'uppercase' }}>
-                EMAIL
+              <label className="text-sm font-medium text-gray-700 mb-1 block">
+                Email
               </label>
               <Input
                 type="email"
-                placeholder="YOU@EXAMPLE.COM"
+                placeholder="you@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 className="bg-gray-50 border-gray-200"
-                style={{ fontFamily: 'Times New Roman, serif', textTransform: 'uppercase' }}
               />
             </div>
 
             <div>
-              <label className="text-sm font-medium text-gray-700 mb-1 block" style={{ fontFamily: 'Times New Roman, serif', textTransform: 'uppercase' }}>
-                PASSWORD
+              <label className="text-sm font-medium text-gray-700 mb-1 block">
+                Password
               </label>
               <div className="relative">
                 <Input
@@ -90,13 +87,11 @@ export default function Login() {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   className="bg-gray-50 border-gray-200 pr-10"
-                  style={{ fontFamily: 'Times New Roman, serif', textTransform: 'uppercase' }}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                  style={{ fontFamily: 'Times New Roman, serif', textTransform: 'uppercase' }}
                 >
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
@@ -111,28 +106,27 @@ export default function Login() {
                 onChange={() => setRememberMe((v) => !v)}
                 className="form-checkbox h-4 w-4 text-black border-gray-300 rounded focus:ring-black transition duration-150 mr-2"
               />
-              <label htmlFor="rememberMe" className="text-sm text-gray-700 select-none cursor-pointer" style={{ fontFamily: 'Times New Roman, serif', textTransform: 'uppercase' }}>
-                REMEMBER ME?
+              <label htmlFor="rememberMe" className="text-sm text-gray-700 select-none cursor-pointer">
+                Remember me?
               </label>
             </div>
 
             {error && (
-              <p className="text-red-500 text-sm" style={{ fontFamily: 'Times New Roman, serif', textTransform: 'uppercase' }}>{error.toUpperCase()}</p>
+              <p className="text-red-500 text-sm">{error}</p>
             )}
 
             <Button
               type="submit"
               disabled={isLoading}
               className={`w-full h-12 bg-black hover:bg-gray-800 text-white font-semibold transition-all duration-300 ${isLoading ? 'scale-95 opacity-80' : ''}`}
-              style={{ fontFamily: 'Times New Roman, serif', textTransform: 'uppercase' }}
             >
               {isLoading ? (
                 <span className="flex items-center justify-center gap-2">
                   <Loader2 className="h-5 w-5 animate-spin" />
-                  <span style={{ fontFamily: 'Times New Roman, serif', textTransform: 'uppercase' }}>LOGGING IN...</span>
+                  <span>Logging in...</span>
                 </span>
               ) : (
-                "LOG IN"
+                "Log In"
               )}
             </Button>
           </form>
@@ -142,7 +136,7 @@ export default function Login() {
               <div className="w-full border-t border-gray-200" />
             </div>
             <div className="relative flex justify-center text-xs">
-              <span className="bg-white px-2 text-gray-400" style={{ fontFamily: 'Times New Roman, serif', textTransform: 'uppercase' }}>OR</span>
+              <span className="bg-white px-2 text-gray-400">or</span>
             </div>
           </div>
 
@@ -150,7 +144,6 @@ export default function Login() {
             onClick={signInWithGoogle}
             variant="outline"
             className="w-full h-12 text-base font-medium gap-3 border-gray-200"
-            style={{ fontFamily: 'Times New Roman, serif', textTransform: 'uppercase' }}
           >
             <svg className="h-5 w-5" viewBox="0 0 24 24">
               <path
@@ -170,13 +163,13 @@ export default function Login() {
                 d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
               />
             </svg>
-            CONTINUE WITH GOOGLE
+            Continue with Google
           </Button>
 
-          <p className="text-center text-sm text-gray-500 mt-6" style={{ fontFamily: 'Times New Roman, serif', textTransform: 'uppercase' }}>
-            DON&apos;T HAVE AN ACCOUNT?{" "}
-            <Link href="/onboarding" className="text-black font-semibold hover:underline" style={{ fontFamily: 'Times New Roman, serif', textTransform: 'uppercase' }}>
-              CREATE A FREE ACCOUNT
+          <p className="text-center text-sm text-gray-500 mt-6">
+            Don&apos;t have an account?{" "}
+            <Link href="/onboarding" className="text-black font-semibold hover:underline">
+              Create a free account
             </Link>
           </p>
         </Card>

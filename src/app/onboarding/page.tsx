@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useRouter } from "next/navigation";
 import { Piano, Guitar, Mic, User, Loader2, Eye, EyeOff } from "lucide-react";
+import ProfilePicUploader from "@/components/ProfilePicUploader";
 import { useAuth } from "@/contexts/AuthContext";
 
 const instruments = [
@@ -47,6 +48,7 @@ export default function Onboarding() {
   const [selectedPieces, setSelectedPieces] = useState<number[]>([]);
   const [bio, setBio] = useState("");
   const [yearsPlaying, setYearsPlaying] = useState("");
+  const [avatarUrl, setAvatarUrl] = useState<string>("");
 
   // Email signup states
   const [showEmailForm, setShowEmailForm] = useState(false);
@@ -67,6 +69,7 @@ export default function Onboarding() {
       setExperienceLevel(profile.experience_level || "");
       setBio(profile.bio || "");
       setYearsPlaying(profile.years_playing || "");
+      setAvatarUrl(profile.avatar_url || "");
       
       // Only redirect if profile is FULLY complete
       const hasAllFields =
@@ -123,6 +126,7 @@ export default function Onboarding() {
           experience_level: experienceLevel,
           bio,
           years_playing: yearsPlaying,
+          avatar_url: avatarUrl,
         });
         
         console.log("Profile saved, redirecting to feed");
@@ -339,15 +343,13 @@ export default function Onboarding() {
           {step === 1 && (
             <div className="space-y-4">
               <h2 className="text-xl font-semibold text-center mb-6">Set up your profile</h2>
-              {profile?.avatar_url && (
-                <div className="flex justify-center mb-4">
-                  <img 
-                    src={profile.avatar_url} 
-                    alt="Profile"
-                    className="h-20 w-20 rounded-full object-cover"
-                  />
-                </div>
-              )}
+              <div className="flex justify-center mb-4">
+                <ProfilePicUploader
+                  avatarUrl={avatarUrl || profile?.avatar_url}
+                  onUpload={(url) => setAvatarUrl(url)}
+                  disabled={isSaving}
+                />
+              </div>
               <div>
                 <label className="text-sm font-medium mb-2 block">Full Name</label>
                 <Input
