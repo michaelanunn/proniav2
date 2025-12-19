@@ -4,7 +4,11 @@ import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 import sharp from "sharp";
 
+
 export async function POST(request: NextRequest) {
+  // Debug: log cookies
+  const allCookies = cookies();
+  console.log("[UPLOAD API] Cookies received:", allCookies);
   const supabase = createRouteHandlerClient({ cookies });
 
   try {
@@ -14,9 +18,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
     }
 
-    const { data: { user } } = await supabase.auth.getUser();
+
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    console.log("[UPLOAD API] Supabase user:", user, "Error:", userError);
     if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ error: "Unauthorized (no user)" }, { status: 401 });
     }
 
 
