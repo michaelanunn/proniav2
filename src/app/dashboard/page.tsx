@@ -3,11 +3,13 @@
 import { Layout } from "@/components/Layout";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Music, Lock, Loader2, ExternalLink, Crown } from "lucide-react";
+import { Music } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { usePractice } from "@/contexts/PracticeContext";
-import { useSpotify } from "@/contexts/SpotifyContext";
-import { usePremium } from "@/contexts/PremiumContext";
+// SPOTIFY PREMIUM FEATURE - COMMENTED OUT FOR FREE VERSION
+// import { Lock, Loader2, ExternalLink, Crown } from "lucide-react";
+// import { useSpotify } from "@/contexts/SpotifyContext";
+// import { usePremium } from "@/contexts/PremiumContext";
 
 const currentSongs = [
   { title: "Moonlight Sonata", artist: "Beethoven" },
@@ -18,10 +20,12 @@ const currentSongs = [
 export default function Dashboard() {
   const router = useRouter();
   const { getWeeklyPracticeTime, getWeeklyPracticeByDay } = usePractice();
-  const { isConnected, isLoading, recentTracks, connect, disconnect } = useSpotify();
-  const { isPremium, isTrialActive, openPaywall } = usePremium();
   
-  const hasPremiumAccess = isPremium || isTrialActive;
+  // SPOTIFY PREMIUM FEATURE - COMMENTED OUT FOR FREE VERSION
+  // const { isConnected, isLoading, recentTracks, connect, disconnect } = useSpotify();
+  // const { isPremium, isTrialActive, openPaywall } = usePremium();
+  // const hasPremiumAccess = isPremium || isTrialActive;
+  
   const weeklyPractice = getWeeklyPracticeByDay();
   const weeklyPracticeHours = getWeeklyPracticeTime() / 3600;
   const maxHours = Math.max(...weeklyPractice.map(d => d.hours), 0.1);
@@ -103,7 +107,7 @@ export default function Dashboard() {
           </div>
         </Card>
 
-        {/* Spotify Integration Card */}
+        {/* SPOTIFY PREMIUM FEATURE - COMMENTED OUT FOR FREE VERSION
         <Card className="p-6 overflow-hidden">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
@@ -209,6 +213,7 @@ export default function Dashboard() {
             </p>
           )}
         </Card>
+        */}
       </div>
     </Layout>
   );
