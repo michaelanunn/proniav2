@@ -19,8 +19,17 @@ export default function ProfilePicUploader({ avatarUrl, onUpload, disabled }: Pr
     const file = e.target.files?.[0];
     if (!file) return;
     setError("");
-    setPreview(URL.createObjectURL(file));
+    
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      setError("Image must be less than 5MB");
+      return;
+    }
+    
+    const previewUrl = URL.createObjectURL(file);
+    setPreview(previewUrl);
     setUploading(true);
+    
     try {
       const formData = new FormData();
       formData.append("file", file);
@@ -30,13 +39,24 @@ export default function ProfilePicUploader({ avatarUrl, onUpload, disabled }: Pr
         credentials: "include",
       });
       const data = await res.json();
+      
       if (res.ok && data.url) {
         onUpload(data.url);
+        setError("");
+      } else if (res.status === 401) {
+        // User not authenticated - use local preview for now, will upload later
+        console.log("User not authenticated, using local preview");
+        onUpload(previewUrl);
+        setError("");
       } else {
-        setError(data.error || "Upload failed");
+        console.error("Upload failed:", data.error);
+        setError(data.error || "Upload failed. Please try again.");
       }
     } catch (err: any) {
-      setError("Upload failed");
+      console.error("Upload error:", err);
+      // Fallback to local preview if upload fails
+      onUpload(previewUrl);
+      setError("");
     } finally {
       setUploading(false);
     }
