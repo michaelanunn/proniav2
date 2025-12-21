@@ -270,7 +270,24 @@ export default function Onboarding() {
                   </Button>
 
                   <p className="text-xs text-center text-muted-foreground">
-                    By continuing, you agree to our Terms of Service and Privacy Policy
+                    By continuing, you agree to our{" "}
+                    <a 
+                      href="/tos" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-blue-600 hover:underline"
+                    >
+                      Terms of Service
+                    </a>
+                    {" "}and{" "}
+                    <a 
+                      href="/privacy" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-blue-600 hover:underline"
+                    >
+                      Privacy Policy
+                    </a>
                   </p>
                 </>
               ) : (
