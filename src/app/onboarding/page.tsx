@@ -57,6 +57,7 @@ export default function Onboarding() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [authError, setAuthError] = useState("");
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
 
   // Check profile when user is loaded
   useEffect(() => {
@@ -326,9 +327,42 @@ export default function Onboarding() {
                     </div>
                   )}
 
+                  <label className="flex items-start gap-2 cursor-pointer">
+                    <input 
+                      type="checkbox" 
+                      checked={agreedToTerms}
+                      onChange={(e) => setAgreedToTerms(e.target.checked)}
+                      className="mt-1 h-4 w-4 rounded border-gray-300 text-black focus:ring-black"
+                      required 
+                    />
+                    <span className="text-sm text-gray-600">
+                      I agree to the{" "}
+                      <a 
+                        href="/tos" 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:underline"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        Terms of Service
+                      </a>
+                      {" "}and{" "}
+                      <a 
+                        href="/privacy" 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:underline"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        Privacy Policy
+                      </a>
+                      .
+                    </span>
+                  </label>
+
                   <Button
                     type="submit"
-                    disabled={isSaving}
+                    disabled={isSaving || !agreedToTerms}
                     className="w-full h-12 bg-black hover:bg-gray-800 text-white font-semibold"
                   >
                     {isSaving ? (
