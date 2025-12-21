@@ -10,9 +10,9 @@ import { useSpotify } from "@/contexts/SpotifyContext";
 import { usePremium } from "@/contexts/PremiumContext";
 
 const currentSongs = [
-  { title: "Moonlight Sonata", artist: "Beethoven", progress: 65 },
-  { title: "Clair de Lune", artist: "Debussy", progress: 100 },
-  { title: "Für Elise", artist: "Beethoven", progress: 40 },
+  { title: "Moonlight Sonata", artist: "Beethoven" },
+  { title: "Clair de Lune", artist: "Debussy" },
+  { title: "Für Elise", artist: "Beethoven" },
 ];
 
 export default function Dashboard() {
@@ -97,9 +97,6 @@ export default function Dashboard() {
                 <div className="flex-1 min-w-0">
                   <h3 className="font-semibold truncate">{song.title}</h3>
                   <p className="text-sm text-muted-foreground">{song.artist}</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium">{song.progress}%</span>
                 </div>
               </div>
             ))}

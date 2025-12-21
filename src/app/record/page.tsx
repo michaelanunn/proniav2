@@ -14,9 +14,10 @@ import {
   Youtube
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
+import { usePractice } from "@/contexts/PracticeContext";
 
 export default function Record() {
-  const [sessions, setSessions] = useState([]);
+  const { sessions, addSession } = usePractice();
   const [isTimerRunning, setIsTimerRunning] = useState(false);
   const [elapsedTime, setElapsedTime] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
@@ -76,17 +77,13 @@ export default function Record() {
   };
 
   const handleSaveLog = () => {
-    const newSession = {
-      id: Date.now(),
+    addSession({
       date: new Date().toISOString(),
       duration: elapsedTime,
       piece: practiceData.piece || "Practice Session",
       composer: practiceData.composer || "",
       notes: practiceData.notes || "",
-      youtubeUrl: practiceData.youtubeUrl || "",
-    };
-
-    setSessions([newSession, ...sessions]);
+    });
     
     setShowSaveForm(false);
     setElapsedTime(0);
