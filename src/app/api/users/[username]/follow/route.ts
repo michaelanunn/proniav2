@@ -19,12 +19,17 @@ export async function POST(
     // Get target user
     const { data: targetUser, error: targetError } = await supabase
       .from("profiles")
-      .select("id")
+      .select("id, followers_count, following_count")
       .eq("username", username)
       .single();
 
     if (targetError || !targetUser) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    // Prevent self-follow
+    if (user.id === targetUser.id) {
+      return NextResponse.json({ error: "Cannot follow yourself" }, { status: 400 });
     }
 
     // Check if already following
@@ -36,27 +41,69 @@ export async function POST(
       .single();
 
     if (existing) {
-      // Unfollow
-      await supabase
+      // Unfollow - delete the relationship first
+      const { error: deleteError } = await supabase
         .from("follows")
         .delete()
         .eq("follower_id", user.id)
         .eq("following_id", targetUser.id);
 
-      // Update counts
-      await supabase.rpc("decrement_followers", { user_id: targetUser.id });
-      await supabase.rpc("decrement_following", { user_id: user.id });
+      if (deleteError) {
+        console.error("Delete follow error:", deleteError);
+        return NextResponse.json({ error: "Failed to unfollow" }, { status: 500 });
+      }
+
+      // Update counts directly (more reliable than RPC)
+      await supabase
+        .from("profiles")
+        .update({ followers_count: Math.max(0, (targetUser.followers_count || 1) - 1) })
+        .eq("id", targetUser.id);
+      
+      // Get current user's following count
+      const { data: currentProfile } = await supabase
+        .from("profiles")
+        .select("following_count")
+        .eq("id", user.id)
+        .single();
+      
+      await supabase
+        .from("profiles")
+        .update({ following_count: Math.max(0, (currentProfile?.following_count || 1) - 1) })
+        .eq("id", user.id);
 
       return NextResponse.json({ following: false });
     } else {
-      // Follow
-      await supabase
+      // Follow - insert the relationship first
+      const { error: insertError } = await supabase
         .from("follows")
         .insert({ follower_id: user.id, following_id: targetUser.id });
 
-      // Update counts
-      await supabase.rpc("increment_followers", { user_id: targetUser.id });
-      await supabase.rpc("increment_following", { user_id: user.id });
+      if (insertError) {
+        // Check if it's a duplicate key error (already following)
+        if (insertError.code === '23505') {
+          return NextResponse.json({ following: true, message: "Already following" });
+        }
+        console.error("Insert follow error:", insertError);
+        return NextResponse.json({ error: "Failed to follow" }, { status: 500 });
+      }
+
+      // Update counts directly
+      await supabase
+        .from("profiles")
+        .update({ followers_count: (targetUser.followers_count || 0) + 1 })
+        .eq("id", targetUser.id);
+      
+      // Get current user's following count
+      const { data: currentProfile } = await supabase
+        .from("profiles")
+        .select("following_count")
+        .eq("id", user.id)
+        .single();
+      
+      await supabase
+        .from("profiles")
+        .update({ following_count: (currentProfile?.following_count || 0) + 1 })
+        .eq("id", user.id);
 
       return NextResponse.json({ following: true });
     }

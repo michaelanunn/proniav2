@@ -5,7 +5,7 @@ import { Layout } from "@/components/Layout";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Heart, MessageCircle, Share2, Play, Search, Bookmark } from "lucide-react";
+import { Heart, MessageCircle, Share2, Play, Search, Bookmark, Music } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { CommentsOverlay } from "@/components/CommentsOverlay";
@@ -42,74 +42,8 @@ interface Post {
   isSaved: boolean;
 }
 
-const initialPosts: Post[] = [
-  {
-    id: "1",
-    user: { name: "John Smith", username: "johnsmith" },
-    piece: "Moonlight Sonata",
-    composer: "Beethoven",
-    time: "2h ago",
-    likes: 89,
-    isLiked: false,
-    isSaved: false,
-    comments: [
-      {
-        id: "c1",
-        user: { id: "u1", name: "Sarah Chen", username: "sarahchen", avatar_url: "" },
-        content: "Beautiful interpretation! The dynamics were perfect 🎹",
-        created_at: new Date(Date.now() - 3600000).toISOString(),
-        likes: 12,
-        isLiked: false,
-        replies: [
-          {
-            id: "c1r1",
-            user: { id: "u2", name: "John Smith", username: "johnsmith", avatar_url: "" },
-            content: "Thank you so much! Been practicing this for months 😊",
-            created_at: new Date(Date.now() - 1800000).toISOString(),
-            likes: 5,
-          }
-        ],
-      },
-      {
-        id: "c2",
-        user: { id: "u3", name: "Emma Wilson", username: "emmawilson", avatar_url: "" },
-        content: "The third movement was incredible. What tempo do you practice at?",
-        created_at: new Date(Date.now() - 7200000).toISOString(),
-        likes: 8,
-      },
-    ],
-  },
-  {
-    id: "2",
-    user: { name: "Emma Wilson", username: "emmawilson" },
-    piece: "La Campanella",
-    composer: "Liszt",
-    time: "5h ago",
-    likes: 156,
-    isLiked: true,
-    isSaved: false,
-    comments: [
-      {
-        id: "c3",
-        user: { id: "u4", name: "Michael Brown", username: "michaelb", avatar_url: "" },
-        content: "Those octave runs are insane! How long have you been playing?",
-        created_at: new Date(Date.now() - 18000000).toISOString(),
-        likes: 23,
-      },
-    ],
-  },
-  {
-    id: "3",
-    user: { name: "Sarah Chen", username: "sarahchen", isPrivate: true },
-    piece: "Clair de Lune",
-    composer: "Debussy",
-    time: "1d ago",
-    likes: 234,
-    isLiked: false,
-    isSaved: true,
-    comments: [],
-  },
-];
+// Posts will be fetched from the database - no mock data
+const initialPosts: Post[] = [];
 
 export default function Feed() {
   const router = useRouter();
@@ -226,7 +160,20 @@ export default function Feed() {
         </div>
         
         <div className="space-y-4">
-          {posts.map((post) => (
+          {posts.length === 0 ? (
+            <div className="text-center py-16">
+              <Music className="h-16 w-16 mx-auto mb-4 text-muted-foreground opacity-50" />
+              <h3 className="text-lg font-semibold mb-2">No posts yet</h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                {activeTab === "following" 
+                  ? "Follow musicians to see their practice posts here"
+                  : "Be the first to share your practice session!"}
+              </p>
+              <Button onClick={() => router.push("/record")}>
+                Record Practice
+              </Button>
+            </div>
+          ) : posts.map((post) => (
             <Card key={post.id} className="overflow-hidden">
               <div className="p-3 pb-2">
                 <div className="flex items-center gap-2 mb-2">
