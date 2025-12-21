@@ -58,38 +58,47 @@ export default function Onboarding() {
   const [showPassword, setShowPassword] = useState(false);
   const [authError, setAuthError] = useState("");
 
-  // Only check profile ONCE when component mounts
+  // Check profile when user is loaded
   useEffect(() => {
-    if (!hasCheckedProfile && profile && !isLoading) {
-      console.log("Checking profile completion:", profile);
-      
-      setName(profile.name || "");
-      setUsername(profile.username || "");
-      setSelectedInstruments(profile.instruments || []);
-      setExperienceLevel(profile.experience_level || "");
-      setBio(profile.bio || "");
-      setYearsPlaying(profile.years_playing || "");
-      setAvatarUrl(profile.avatar_url || "");
-      
-      // Only redirect if profile is FULLY complete
-      const hasAllFields =
-        profile.name?.trim() &&
-        profile.username?.trim() &&
-        Array.isArray(profile.instruments) && 
-        profile.instruments.length > 0 &&
-        profile.experience_level?.trim();
-      
-      if (hasAllFields) {
-        console.log("Profile complete, redirecting to feed");
-        router.push("/feed");
+    if (isLoading) return;
+    
+    // If user exists but we haven't checked profile yet
+    if (user && !hasCheckedProfile) {
+      if (profile) {
+        console.log("Checking profile completion:", profile);
+        
+        setName(profile.name || "");
+        setUsername(profile.username || "");
+        setSelectedInstruments(profile.instruments || []);
+        setExperienceLevel(profile.experience_level || "");
+        setBio(profile.bio || "");
+        setYearsPlaying(profile.years_playing || "");
+        setAvatarUrl(profile.avatar_url || "");
+        
+        // Only redirect if profile is FULLY complete
+        const hasAllFields =
+          profile.name?.trim() &&
+          profile.username?.trim() &&
+          Array.isArray(profile.instruments) && 
+          profile.instruments.length > 0 &&
+          profile.experience_level?.trim();
+        
+        if (hasAllFields) {
+          console.log("Profile complete, redirecting to feed");
+          router.push("/feed");
+        } else {
+          console.log("Profile incomplete, starting onboarding at step 1");
+          setStep(1);
+        }
       } else {
-        console.log("Profile incomplete, starting onboarding at step 1");
+        // User exists but no profile yet - go to step 1
+        console.log("User exists but no profile, starting at step 1");
         setStep(1);
       }
       
       setHasCheckedProfile(true);
     }
-  }, [profile, isLoading, hasCheckedProfile, router]);
+  }, [user, profile, isLoading, hasCheckedProfile, router]);
 
   const toggleInstrument = (id: string) => {
     if (selectedInstruments.includes(id)) {
@@ -188,7 +197,8 @@ export default function Onboarding() {
       case 2:
         return selectedInstruments.length > 0;
       case 3:
-        return selectedPieces.length === 3;
+        // Must select experience level AND 3 pieces
+        return experienceLevel.trim() && selectedPieces.length === 3;
       case 4:
         return true;
       default:
@@ -196,7 +206,8 @@ export default function Onboarding() {
     }
   };
 
-  if (isLoading || (profile && !hasCheckedProfile)) {
+  // Show loading while auth is loading OR while we haven't checked a logged-in user's profile yet
+  if (isLoading || (user && !hasCheckedProfile)) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
