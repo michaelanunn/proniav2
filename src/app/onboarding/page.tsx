@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Piano, Guitar, Mic, User, Loader2, Eye, EyeOff } from "lucide-react";
 import ProfilePicUploader from "@/components/ProfilePicUploader";
 import { useAuth } from "@/contexts/AuthContext";
@@ -288,6 +289,13 @@ export default function Onboarding() {
                     >
                       Privacy Policy
                     </a>
+                  </p>
+
+                  <p className="text-center text-sm text-gray-500 mt-4">
+                    Already have an account?{" "}
+                    <Link href="/login" className="text-black font-semibold hover:underline">
+                      Log in
+                    </Link>
                   </p>
                 </>
               ) : (
