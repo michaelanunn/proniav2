@@ -67,13 +67,14 @@ export default function Onboarding() {
       if (profile) {
         console.log("Checking profile completion:", profile);
         
-        setName(profile.name || "");
-        setUsername(profile.username || "");
-        setSelectedInstruments(profile.instruments || []);
-        setExperienceLevel(profile.experience_level || "");
-        setBio(profile.bio || "");
-        setYearsPlaying(profile.years_playing || "");
-        setAvatarUrl(profile.avatar_url || "");
+        // Only override fields if profile has actual values (don't clear existing input)
+        if (profile.name?.trim()) setName(profile.name);
+        if (profile.username?.trim()) setUsername(profile.username);
+        if (profile.instruments?.length > 0) setSelectedInstruments(profile.instruments);
+        if (profile.experience_level?.trim()) setExperienceLevel(profile.experience_level);
+        if (profile.bio?.trim()) setBio(profile.bio);
+        if (profile.years_playing?.trim()) setYearsPlaying(profile.years_playing);
+        if (profile.avatar_url?.trim()) setAvatarUrl(profile.avatar_url);
         
         // Only redirect if profile is FULLY complete
         const hasAllFields =
@@ -170,7 +171,9 @@ export default function Onboarding() {
       }
       
       await signUpWithEmail(email, password, signupName);
-      // Don't do anything here - the useEffect will handle moving to step 1
+      // Pre-populate the name field from signup and move to step 1
+      setName(signupName);
+      setStep(1);
       setIsSaving(false);
     } catch (error: any) {
       console.error("Signup error:", error);
