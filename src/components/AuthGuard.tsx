@@ -6,7 +6,7 @@ import { useEffect, useRef } from "react";
 import { Loader2 } from "lucide-react";
 
 // Pages that don't require authentication
-const PUBLIC_PATHS = ["/", "/login", "/onboarding", "/auth/callback", "/tos", "/privacy"];
+const PUBLIC_PATHS = ["/", "/login", "/onboarding", "/auth/callback", "/tos", "/privacy", "/forgot-password", "/reset-password"];
 
 interface AuthGuardProps {
   children: React.ReactNode;

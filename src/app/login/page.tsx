@@ -67,7 +67,7 @@ export default function Login() {
               </label>
               <Input
                 type="email"
-                placeholder="you@example.com"
+                placeholder="Enter your email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -98,17 +98,22 @@ export default function Login() {
               </div>
             </div>
 
-            <div className="flex items-center mb-2">
-              <input
-                id="rememberMe"
-                type="checkbox"
-                checked={rememberMe}
-                onChange={() => setRememberMe((v) => !v)}
-                className="form-checkbox h-4 w-4 text-black border-gray-300 rounded focus:ring-black transition duration-150 mr-2"
-              />
-              <label htmlFor="rememberMe" className="text-sm text-gray-700 select-none cursor-pointer">
-                Remember me?
-              </label>
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center">
+                <input
+                  id="rememberMe"
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={() => setRememberMe((v) => !v)}
+                  className="form-checkbox h-4 w-4 text-black border-gray-300 rounded focus:ring-black transition duration-150 mr-2"
+                />
+                <label htmlFor="rememberMe" className="text-sm text-gray-700 select-none cursor-pointer">
+                  Remember me?
+                </label>
+              </div>
+              <Link href="/forgot-password" className="text-sm text-blue-600 hover:underline">
+                Forgot Password?
+              </Link>
             </div>
 
             {error && (
