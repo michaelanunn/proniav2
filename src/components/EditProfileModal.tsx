@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { X, Camera } from "lucide-react";
+import { X, Camera, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -26,27 +26,61 @@ export const EditProfileModal = ({
 }: EditProfileModalProps) => {
   const [formData, setFormData] = useState<ProfileData>(initialData);
   const [previewImage, setPreviewImage] = useState<string | null>(initialData.profilePic);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState("");
 
   // Sync form data when modal opens or initialData changes
   useEffect(() => {
     if (isOpen) {
       setFormData(initialData);
       setPreviewImage(initialData.profilePic);
+      setUploadError("");
     }
   }, [isOpen, initialData]);
 
   if (!isOpen) return null;
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const result = reader.result as string;
-        setPreviewImage(result);
-        setFormData((prev) => ({ ...prev, profilePic: result }));
-      };
-      reader.readAsDataURL(file);
+    if (!file) return;
+    
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      setUploadError("Image must be less than 5MB");
+      return;
+    }
+    
+    setUploadError("");
+    const localPreview = URL.createObjectURL(file);
+    setPreviewImage(localPreview);
+    setIsUploading(true);
+    
+    try {
+      const formDataUpload = new FormData();
+      formDataUpload.append("file", file);
+      
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        body: formDataUpload,
+        credentials: "include",
+      });
+      
+      const data = await res.json();
+      
+      if (res.ok && data.url) {
+        setFormData((prev) => ({ ...prev, profilePic: data.url }));
+        setUploadError("");
+      } else {
+        // Fallback to local preview if upload fails
+        setFormData((prev) => ({ ...prev, profilePic: localPreview }));
+        console.warn("Upload failed, using local preview:", data.error);
+      }
+    } catch (err) {
+      // Fallback to local preview
+      setFormData((prev) => ({ ...prev, profilePic: localPreview }));
+      console.warn("Upload error, using local preview:", err);
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -104,26 +138,36 @@ export const EditProfileModal = ({
                     </span>
                   </div>
                 )}
+                {isUploading && (
+                  <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center">
+                    <Loader2 className="h-6 w-6 text-white animate-spin" />
+                  </div>
+                )}
               </div>
-              <label className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+              <label className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
                 <Camera className="h-6 w-6 text-white" />
                 <input
                   type="file"
                   accept="image/*"
                   onChange={handleImageChange}
+                  disabled={isUploading}
                   className="hidden"
                 />
               </label>
             </div>
-            <label className="mt-3 text-sm font-medium text-accent cursor-pointer hover:underline">
-              Change photo
+            <label className="mt-3 px-4 py-2 bg-black text-white text-sm font-semibold rounded-lg cursor-pointer hover:bg-gray-800 transition-colors">
+              {isUploading ? "Uploading..." : "Change photo"}
               <input
                 type="file"
                 accept="image/*"
                 onChange={handleImageChange}
+                disabled={isUploading}
                 className="hidden"
               />
             </label>
+            {uploadError && (
+              <p className="mt-2 text-xs text-red-500">{uploadError}</p>
+            )}
           </div>
 
           {/* Form Fields */}

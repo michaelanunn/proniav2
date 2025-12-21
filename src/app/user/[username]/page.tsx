@@ -86,16 +86,25 @@ export default function UserProfilePage() {
       const res = await fetch(`/api/users/${username}/follow`, {
         method: "POST",
       });
+      
       if (res.ok) {
         const data = await res.json();
+        console.log("Follow response:", data);
+        
+        // Update state immediately
         setIsFollowing(data.following);
+        
         // Update follower count locally
         if (profile) {
+          const currentCount = profile.followers_count || 0;
           setProfile({
             ...profile,
-            followers_count: profile.followers_count + (data.following ? 1 : -1),
+            followers_count: data.following ? currentCount + 1 : Math.max(0, currentCount - 1),
           });
         }
+      } else {
+        const errorData = await res.json();
+        console.error("Follow API error:", errorData);
       }
     } catch (error) {
       console.error("Error following user:", error);
