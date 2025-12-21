@@ -71,6 +71,14 @@ export async function POST(
         .update({ following_count: Math.max(0, (currentProfile?.following_count || 1) - 1) })
         .eq("id", user.id);
 
+      // Delete the follow notification
+      await supabase
+        .from("notifications")
+        .delete()
+        .eq("actor_id", user.id)
+        .eq("user_id", targetUser.id)
+        .eq("type", "follow");
+
       return NextResponse.json({ following: false });
     } else {
       // Follow - insert the relationship first
@@ -104,6 +112,14 @@ export async function POST(
         .from("profiles")
         .update({ following_count: (currentProfile?.following_count || 0) + 1 })
         .eq("id", user.id);
+
+      // Create notification for the followed user
+      await supabase.from("notifications").insert({
+        user_id: targetUser.id,
+        actor_id: user.id,
+        type: "follow",
+        post_id: null,
+      });
 
       return NextResponse.json({ following: true });
     }

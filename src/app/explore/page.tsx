@@ -133,7 +133,7 @@ export default function Explore() {
   };
 
   return (
-    <Layout streak={7}>
+    <Layout>
       <div className="max-w-2xl mx-auto px-4 py-6">
         <form onSubmit={handleSearch} className="mb-4">
           <div className="relative">

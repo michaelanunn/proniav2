@@ -6,14 +6,13 @@ import { BottomNav } from "./BottomNav";
 
 interface LayoutProps {
   children: ReactNode;
-  streak?: number;
   showBranding?: boolean;
 }
 
-export const Layout = ({ children, streak, showBranding = true }: LayoutProps) => {
+export const Layout = ({ children, showBranding = true }: LayoutProps) => {
   return (
     <div className="min-h-screen bg-background">
-      <TopBar streak={streak} showBranding={showBranding} />
+      <TopBar showBranding={showBranding} />
       <main className="pt-16 pb-20">
         {children}
       </main>

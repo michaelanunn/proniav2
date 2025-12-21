@@ -14,15 +14,17 @@ const navItems = [
 export const BottomNav = () => {
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50">
-      <div className="flex items-center justify-around h-16 px-2">
+      <div className="flex flex-wrap items-center justify-around h-16 px-2">
         {navItems.map((item) => (
           <NavLink
             key={item.path}
             to={item.path}
-            className="flex flex-col items-center justify-center gap-1 px-3 py-2 rounded-lg transition-colors text-gray-500"
+            className="flex flex-col items-center justify-center gap-1 w-16 py-2 rounded-lg transition-colors text-gray-500"
             activeClassName="text-black bg-gray-100"
           >
-            <item.icon className="h-5 w-5" />
+            <div className="h-5 w-5 flex items-center justify-center">
+              <item.icon className="h-5 w-5" />
+            </div>
             <span className="text-xs font-medium">{item.label}</span>
           </NavLink>
         ))}

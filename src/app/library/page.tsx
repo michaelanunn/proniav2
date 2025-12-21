@@ -3,7 +3,7 @@
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Filter, Search, Play, Plus, X, Trash2 } from "lucide-react";
+import { Search, Play, Plus, X, Trash2 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { AddPieceModal } from "@/components/AddPieceModal";
 
@@ -99,13 +99,10 @@ export default function Library() {
   });
 
   return (
-    <Layout streak={7}>
+    <Layout>
       <div className="max-w-4xl mx-auto px-4 py-6">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold">My Library</h1>
-          <Button variant="ghost" size="icon">
-            <Filter className="h-5 w-5" />
-          </Button>
         </div>
 
         <div className="flex gap-2 mb-6">
@@ -184,7 +181,7 @@ export default function Library() {
                         max="100"
                         value={piece.progress}
                         onChange={(e) => handleUpdateProgress(piece.id, parseInt(e.target.value))}
-                        className="flex-1 h-2 bg-secondary rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-accent"
+                        className="flex-1 h-2 bg-[rgba(245,245,245,1)] rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-foreground [&::-webkit-slider-thumb]:shadow-md"
                       />
                       <span className="text-xs text-muted-foreground w-8 text-right">{piece.progress}%</span>
                     </div>

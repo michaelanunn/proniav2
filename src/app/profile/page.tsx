@@ -6,7 +6,10 @@ import { EditProfileModal } from "@/components/EditProfileModal";
 import { FollowersModal } from "@/components/FollowersModal";
 import { usePractice } from "@/contexts/PracticeContext";
 import { useAuth } from "@/contexts/AuthContext";
-import { Settings, Share2, User, Music, Flame, Clock, Loader2, Lock } from "lucide-react";
+import { Share2, User, Music, Flame, Clock, Loader2, Lock, Youtube, X, Trash2 } from "lucide-react";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -20,13 +23,19 @@ const badges = [
 export default function Profile() {
   const router = useRouter();
   const { user, profile, isLoading, updateProfile, refreshProfile } = useAuth();
-  const { sessions } = usePractice();
+  const { sessions, deleteSession } = usePractice();
   
   const [activeTab, setActiveTab] = useState("posts");
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isFollowersModalOpen, setIsFollowersModalOpen] = useState(false);
   const [followersModalTab, setFollowersModalTab] = useState<"followers" | "following">("followers");
   const [isPrivate, setIsPrivate] = useState(false);
+  const [showCreatePost, setShowCreatePost] = useState(false);
+  const [postData, setPostData] = useState({
+    youtubeUrl: "",
+    title: "",
+    notes: "",
+  });
 
   // Check if profile is private
   useEffect(() => {
@@ -85,6 +94,18 @@ export default function Profile() {
     }
   };
 
+  const handlePublishPost = () => {
+    // TODO: Save post to database
+    console.log("Publishing post:", postData);
+    setShowCreatePost(false);
+    setPostData({ youtubeUrl: "", title: "", notes: "" });
+  };
+
+  const handleCloseCreatePost = () => {
+    setShowCreatePost(false);
+    setPostData({ youtubeUrl: "", title: "", notes: "" });
+  };
+
   if (isLoading) {
     return (
       <Layout>
@@ -128,9 +149,6 @@ if (!profile) {
         <div className="flex justify-end items-center gap-2 mb-4">
           <Button variant="ghost" size="icon">
             <Share2 className="h-5 w-5" />
-          </Button>
-          <Button variant="ghost" size="icon" onClick={() => router.push("/settings")}>
-            <Settings className="h-5 w-5" />
           </Button>
         </div>
 
@@ -269,10 +287,102 @@ if (!profile) {
         </div>
 
         {activeTab === "posts" && (
-          <div className="text-center py-12 text-muted-foreground">
-            <Clock className="h-12 w-12 mx-auto mb-3 opacity-50" />
-            <p className="text-sm">No posts yet</p>
-            <p className="text-xs mt-1">Record a practice session to share</p>
+          <Card className="p-6">
+            <div className="text-center mb-6">
+              <div className="inline-flex items-center justify-center h-16 w-16 rounded-full bg-red-100 mb-4">
+                <Youtube className="h-8 w-8 text-red-600" />
+              </div>
+              <h2 className="text-xl font-bold mb-1">Share Your Practice!</h2>
+              <p className="text-3xl font-mono font-bold text-foreground">
+                0 Posts
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              <p className="text-center text-muted-foreground text-sm">
+                Share your practice sessions by posting YouTube videos.
+              </p>
+
+              <Button 
+                className="w-full"
+                onClick={() => setShowCreatePost(true)}
+              >
+                <Share2 className="mr-2 h-5 w-5" />
+                Create Your First Post
+              </Button>
+            </div>
+          </Card>
+        )}
+
+        {/* Create Post Overlay */}
+        {showCreatePost && (
+          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+            <Card className="w-full max-w-md p-6 relative">
+              <button
+                onClick={handleCloseCreatePost}
+                className="absolute top-4 right-4 text-muted-foreground hover:text-foreground"
+              >
+                <X className="h-5 w-5" />
+              </button>
+              
+              <div className="text-center mb-6">
+                <div className="inline-flex items-center justify-center h-16 w-16 rounded-full bg-red-100 mb-4">
+                  <Youtube className="h-8 w-8 text-red-600" />
+                </div>
+                <h2 className="text-xl font-bold mb-1">Create a Post</h2>
+                <p className="text-sm text-muted-foreground">
+                  Share a YouTube video with your practice community!
+                </p>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium mb-2 block">
+                    <div className="flex items-center gap-2">
+                      <Youtube className="h-4 w-4 text-red-600" />
+                      YouTube Video Link
+                    </div>
+                  </label>
+                  <Input
+                    placeholder="https://youtube.com/watch?v=..."
+                    value={postData.youtubeUrl}
+                    onChange={(e) => setPostData(prev => ({ ...prev, youtubeUrl: e.target.value }))}
+                  />
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Song Title</label>
+                  <Input
+                    placeholder="What song is this?"
+                    value={postData.title}
+                    onChange={(e) => setPostData(prev => ({ ...prev, title: e.target.value }))}
+                  />
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Caption (optional)</label>
+                  <Textarea
+                    placeholder="Add a caption for your post..."
+                    value={postData.notes}
+                    onChange={(e) => setPostData(prev => ({ ...prev, notes: e.target.value }))}
+                    rows={3}
+                  />
+                </div>
+
+                <div className="flex gap-3 pt-4">
+                  <Button variant="outline" className="flex-1" onClick={handleCloseCreatePost}>
+                    Cancel
+                  </Button>
+                  <Button 
+                    className="flex-1" 
+                    onClick={handlePublishPost}
+                    disabled={!postData.youtubeUrl}
+                  >
+                    Post
+                  </Button>
+                </div>
+              </div>
+            </Card>
           </div>
         )}
 
@@ -287,21 +397,33 @@ if (!profile) {
             ) : (
               sessions.map((session) => (
                 <div key={session.id} className="p-4 border border-border rounded-lg">
-                  <h3 className="font-semibold mb-1">
-                    {session.piece || "Practice Session"}
-                  </h3>
-                  <p className="text-sm text-muted-foreground">
-                    {new Date(session.date).toLocaleDateString("en-US", { 
-                      weekday: "short",
-                      month: "short", 
-                      day: "numeric",
-                      hour: "numeric",
-                      minute: "2-digit"
-                    })} • {formatDuration(session.duration)}
-                  </p>
-                  {session.notes && (
-                    <p className="text-sm mt-2 text-muted-foreground">{session.notes}</p>
-                  )}
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold mb-1">
+                        {session.piece || "Practice Session"}
+                      </h3>
+                      <p className="text-sm text-muted-foreground">
+                        {new Date(session.date).toLocaleDateString("en-US", { 
+                          weekday: "short",
+                          month: "short", 
+                          day: "numeric",
+                          hour: "numeric",
+                          minute: "2-digit"
+                        })} • {formatDuration(session.duration)}
+                      </p>
+                      {session.notes && (
+                        <p className="text-sm mt-2 text-muted-foreground">{session.notes}</p>
+                      )}
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-muted-foreground hover:text-destructive shrink-0"
+                      onClick={() => deleteSession(session.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
               ))
             )}

@@ -14,9 +14,11 @@ interface PracticeSession {
 interface PracticeContextType {
   sessions: PracticeSession[];
   addSession: (session: Omit<PracticeSession, "id">) => void;
+  deleteSession: (id: string) => void;
   getTotalPracticeTime: () => number; // in seconds
   getWeeklyPracticeTime: () => number; // in seconds
   getWeeklyPracticeByDay: () => { day: string; hours: number }[];
+  getStreak: () => number; // consecutive days of practice
 }
 
 const PracticeContext = createContext<PracticeContextType | undefined>(undefined);
@@ -45,6 +47,10 @@ export const PracticeProvider = ({ children }: { children: ReactNode }) => {
       id: Date.now().toString(),
     };
     setSessions((prev) => [newSession, ...prev]);
+  };
+
+  const deleteSession = (id: string) => {
+    setSessions((prev) => prev.filter((session) => session.id !== id));
   };
 
   const getTotalPracticeTime = () => {
@@ -86,14 +92,62 @@ export const PracticeProvider = ({ children }: { children: ReactNode }) => {
     }));
   };
 
+  const getStreak = () => {
+    if (sessions.length === 0) return 0;
+
+    // Get unique practice dates (normalized to start of day)
+    const practiceDates = new Set<string>();
+    sessions.forEach((session) => {
+      const date = new Date(session.date);
+      date.setHours(0, 0, 0, 0);
+      practiceDates.add(date.toISOString());
+    });
+
+    // Sort dates in descending order
+    const sortedDates = Array.from(practiceDates)
+      .map((d) => new Date(d))
+      .sort((a, b) => b.getTime() - a.getTime());
+
+    // Check if there's practice today or yesterday (streak can continue)
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    const mostRecentPractice = sortedDates[0];
+    if (mostRecentPractice.getTime() < yesterday.getTime()) {
+      return 0; // Streak broken - no practice today or yesterday
+    }
+
+    // Count consecutive days
+    let streak = 1;
+    for (let i = 0; i < sortedDates.length - 1; i++) {
+      const current = sortedDates[i];
+      const next = sortedDates[i + 1];
+      const diffDays = Math.round(
+        (current.getTime() - next.getTime()) / (1000 * 60 * 60 * 24)
+      );
+
+      if (diffDays === 1) {
+        streak++;
+      } else {
+        break;
+      }
+    }
+
+    return streak;
+  };
+
   return (
     <PracticeContext.Provider
       value={{
         sessions,
         addSession,
+        deleteSession,
         getTotalPracticeTime,
         getWeeklyPracticeTime,
         getWeeklyPracticeByDay,
+        getStreak,
       }}
     >
       {children}

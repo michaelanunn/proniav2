@@ -4,7 +4,7 @@ import { Layout } from "@/components/Layout";
 
 export default function Saved() {
   return (
-    <Layout streak={7}>
+    <Layout>
       <div className="max-w-2xl mx-auto px-4 py-6">
         <h1 className="text-2xl font-bold mb-6">Saved Posts</h1>
         

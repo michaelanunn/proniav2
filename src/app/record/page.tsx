@@ -11,24 +11,34 @@ import {
   Check, 
   Clock,
   Pause,
-  Youtube
+  Youtube,
+  Share2,
+  Trash2
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { usePractice } from "@/contexts/PracticeContext";
 
 export default function Record() {
-  const { sessions, addSession } = usePractice();
+  const { sessions, addSession, deleteSession } = usePractice();
   const [isTimerRunning, setIsTimerRunning] = useState(false);
   const [elapsedTime, setElapsedTime] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
+  const [savedDuration, setSavedDuration] = useState(0);
   const intervalRef = useRef(null);
   
-  const [showSaveForm, setShowSaveForm] = useState(false);
-  const [practiceData, setPracticeData] = useState({
-    piece: "",
+  const [showSavePrompt, setShowSavePrompt] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [showCreatePost, setShowCreatePost] = useState(false);
+  const [sessionData, setSessionData] = useState({
+    songTitle: "",
     composer: "",
     notes: "",
+  });
+  const [postData, setPostData] = useState({
     youtubeUrl: "",
+    title: "",
+    notes: "",
+    caption: "",
   });
 
   const formatTime = (seconds) => {
@@ -73,35 +83,58 @@ export default function Record() {
   const handleEndPractice = () => {
     setIsTimerRunning(false);
     setIsPaused(false);
-    setShowSaveForm(true);
+    setSavedDuration(elapsedTime);
+    setShowSavePrompt(true);
   };
 
   const handleSaveLog = () => {
     addSession({
       date: new Date().toISOString(),
-      duration: elapsedTime,
-      piece: practiceData.piece || "Practice Session",
-      composer: practiceData.composer || "",
-      notes: practiceData.notes || "",
+      duration: savedDuration,
+      piece: sessionData.songTitle || "Practice Session",
+      composer: sessionData.composer,
+      notes: sessionData.notes,
     });
     
-    setShowSaveForm(false);
-    setElapsedTime(0);
-    setPracticeData({ piece: "", composer: "", notes: "", youtubeUrl: "" });
+    setShowSavePrompt(false);
+    setShowSuccess(true);
   };
 
   const handleDiscardPractice = () => {
-    setShowSaveForm(false);
+    setShowSavePrompt(false);
+    setShowSuccess(false);
+    setShowCreatePost(false);
     setElapsedTime(0);
-    setPracticeData({ piece: "", composer: "", notes: "", youtubeUrl: "" });
+    setSavedDuration(0);
+    setSessionData({ songTitle: "", composer: "", notes: "" });
+    setPostData({ youtubeUrl: "", title: "", notes: "", caption: "" });
+  };
+
+  const handleDone = () => {
+    setShowSuccess(false);
+    setShowCreatePost(false);
+    setElapsedTime(0);
+    setSavedDuration(0);
+    setSessionData({ songTitle: "", composer: "", notes: "" });
+    setPostData({ youtubeUrl: "", title: "", notes: "", caption: "" });
+  };
+
+  const handleCreatePost = () => {
+    setShowCreatePost(true);
+  };
+
+  const handlePublishPost = () => {
+    // TODO: Save post to database with youtubeUrl and caption
+    console.log("Publishing post:", postData);
+    handleDone();
   };
 
   const recentSessions = sessions.slice(0, 5);
 
   return (
-    <Layout streak={0}>
+    <Layout>
       <div className="max-w-2xl mx-auto px-4 py-6">
-        {!showSaveForm ? (
+        {!showSavePrompt && !showSuccess ? (
           <>
             <Card className="p-8 mb-6 text-center">
               <div className="mb-8">
@@ -188,79 +221,68 @@ export default function Record() {
                           {new Date(session.date).toLocaleDateString()} • {formatTime(session.duration)}
                         </p>
                       </div>
-                      {session.youtubeUrl && (
-                        <Youtube className="h-5 w-5 text-red-600" />
-                      )}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                        onClick={() => deleteSession(session.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </div>
                   ))}
                 </div>
               )}
             </Card>
           </>
-        ) : (
+        ) : showSavePrompt ? (
           <Card className="p-6">
             <div className="text-center mb-6">
               <div className="inline-flex items-center justify-center h-16 w-16 rounded-full bg-green-100 mb-4">
                 <Check className="h-8 w-8 text-green-600" />
               </div>
               <h2 className="text-xl font-bold mb-1">Great Practice!</h2>
-              <p className="text-3xl font-mono font-bold text-accent">
-                {formatTime(elapsedTime)}
+              <p className="text-3xl font-mono font-bold text-foreground">
+                {formatTime(savedDuration)}
+              </p>
+              <p className="text-sm text-muted-foreground mt-2">
+                Add details to your practice log
               </p>
             </div>
 
             <div className="space-y-4">
               <div>
-                <label className="text-sm font-medium mb-2 block">
-                  What did you practice?
-                </label>
+                <label className="text-sm font-medium mb-2 block">Song Title</label>
                 <Input 
-                  placeholder="e.g., Moonlight Sonata"
-                  value={practiceData.piece}
-                  onChange={(e) => setPracticeData(prev => ({ ...prev, piece: e.target.value }))}
+                  placeholder="What piece did you practice?"
+                  value={sessionData.songTitle}
+                  onChange={(e) => setSessionData(prev => ({ ...prev, songTitle: e.target.value }))}
                 />
               </div>
 
               <div>
                 <label className="text-sm font-medium mb-2 block">Composer (optional)</label>
                 <Input 
-                  placeholder="e.g., Beethoven"
-                  value={practiceData.composer}
-                  onChange={(e) => setPracticeData(prev => ({ ...prev, composer: e.target.value }))}
+                  placeholder="Who composed this piece?"
+                  value={sessionData.composer}
+                  onChange={(e) => setSessionData(prev => ({ ...prev, composer: e.target.value }))}
                 />
               </div>
 
               <div>
                 <label className="text-sm font-medium mb-2 block">Notes (optional)</label>
                 <Textarea 
-                  placeholder="How did the session go? Any breakthroughs?"
-                  value={practiceData.notes}
-                  onChange={(e) => setPracticeData(prev => ({ ...prev, notes: e.target.value }))}
+                  placeholder="Any notes about your practice session..."
+                  value={sessionData.notes}
+                  onChange={(e) => setSessionData(prev => ({ ...prev, notes: e.target.value }))}
                   rows={3}
                 />
               </div>
 
-              <div>
-                <label className="text-sm font-medium mb-2 block">
-                  <div className="flex items-center gap-2">
-                    <Youtube className="h-4 w-4 text-red-600" />
-                    YouTube Video Link (optional)
-                  </div>
-                </label>
-                <Input 
-                  placeholder="https://youtube.com/watch?v=..."
-                  value={practiceData.youtubeUrl}
-                  onChange={(e) => setPracticeData(prev => ({ ...prev, youtubeUrl: e.target.value }))}
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  Share your practice session by adding a YouTube link
-                </p>
-              </div>
-
-              <div className="flex gap-3 pt-4">
+              <div className="flex gap-3 pt-2">
                 <Button 
-                  variant="outline" 
-                  className="flex-1" 
+                  variant="outline"
+                  className="flex-1"
                   onClick={handleDiscardPractice}
                 >
                   Discard
@@ -270,12 +292,119 @@ export default function Record() {
                   onClick={handleSaveLog}
                 >
                   <Check className="mr-2 h-5 w-5" />
-                  Save Practice Log
+                  Save Log
                 </Button>
               </div>
             </div>
           </Card>
-        )}
+        ) : showSuccess && !showCreatePost ? (
+          <Card className="p-6">
+            <div className="text-center mb-6">
+              <div className="inline-flex items-center justify-center h-16 w-16 rounded-full bg-green-100 mb-4">
+                <Check className="h-8 w-8 text-green-600" />
+              </div>
+              <h2 className="text-xl font-bold mb-1">Session Saved!</h2>
+              <p className="text-3xl font-mono font-bold text-foreground">
+                {formatTime(savedDuration)}
+              </p>
+              <p className="text-sm text-muted-foreground mt-2">
+                Added to your practice log
+              </p>
+            </div>
+
+            <div className="flex flex-col gap-3">
+              <Button 
+                variant="outline"
+                className="w-full"
+                onClick={handleCreatePost}
+              >
+                <Share2 className="mr-2 h-5 w-5" />
+                Share as Post
+              </Button>
+              <Button 
+                className="w-full"
+                onClick={handleDone}
+              >
+                Done
+              </Button>
+            </div>
+          </Card>
+        ) : showCreatePost ? (
+          <Card className="p-6">
+            <div className="text-center mb-6">
+              <div className="inline-flex items-center justify-center h-16 w-16 rounded-full bg-red-100 mb-4">
+                <Youtube className="h-8 w-8 text-red-600" />
+              </div>
+              <h2 className="text-xl font-bold mb-1">Create a Post</h2>
+              <p className="text-sm text-muted-foreground">
+                Share your practice with a YouTube video
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-medium mb-2 block">
+                  <div className="flex items-center gap-2">
+                    <Youtube className="h-4 w-4 text-red-600" />
+                    YouTube Video Link
+                  </div>
+                </label>
+                <Input 
+                  placeholder="https://youtube.com/watch?v=..."
+                  value={postData.youtubeUrl}
+                  onChange={(e) => setPostData(prev => ({ ...prev, youtubeUrl: e.target.value }))}
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-medium mb-2 block">Song Title</label>
+                <Input 
+                  placeholder="What piece are you playing?"
+                  value={postData.title}
+                  onChange={(e) => setPostData(prev => ({ ...prev, title: e.target.value }))}
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-medium mb-2 block">Notes (optional)</label>
+                <Textarea 
+                  placeholder="Any notes about your practice..."
+                  value={postData.notes}
+                  onChange={(e) => setPostData(prev => ({ ...prev, notes: e.target.value }))}
+                  rows={2}
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-medium mb-2 block">Caption (optional)</label>
+                <Textarea 
+                  placeholder="Say something about your practice..."
+                  value={postData.caption}
+                  onChange={(e) => setPostData(prev => ({ ...prev, caption: e.target.value }))}
+                  rows={3}
+                />
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <Button 
+                  variant="outline" 
+                  className="flex-1" 
+                  onClick={() => setShowCreatePost(false)}
+                >
+                  Back
+                </Button>
+                <Button 
+                  className="flex-1"
+                  onClick={handlePublishPost}
+                  disabled={!postData.youtubeUrl}
+                >
+                  <Share2 className="mr-2 h-5 w-5" />
+                  Post
+                </Button>
+              </div>
+            </div>
+          </Card>
+        ) : null}
       </div>
     </Layout>
   );

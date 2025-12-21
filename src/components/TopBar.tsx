@@ -5,16 +5,18 @@ import { Button } from "./ui/button";
 import { useState } from "react";
 import { ProfilePopup } from "./ProfilePopup";
 import { useAuth } from "@/contexts/AuthContext";
+import { usePractice } from "@/contexts/PracticeContext";
 import { BrandMark } from "./BrandMark";
 
 interface TopBarProps {
-  streak?: number;
   showBranding?: boolean;
 }
 
-export const TopBar = ({ streak = 0, showBranding = true }: TopBarProps) => {
+export const TopBar = ({ showBranding = true }: TopBarProps) => {
   const [showProfilePopup, setShowProfilePopup] = useState(false);
   const { profile } = useAuth();
+  const { getStreak } = usePractice();
+  const streak = getStreak();
 
   const avatarUrl = profile?.avatar_url;
 

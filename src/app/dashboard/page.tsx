@@ -11,12 +11,6 @@ import { usePractice } from "@/contexts/PracticeContext";
 // import { useSpotify } from "@/contexts/SpotifyContext";
 // import { usePremium } from "@/contexts/PremiumContext";
 
-const currentSongs = [
-  { title: "Moonlight Sonata", artist: "Beethoven" },
-  { title: "Clair de Lune", artist: "Debussy" },
-  { title: "Für Elise", artist: "Beethoven" },
-];
-
 export default function Dashboard() {
   const router = useRouter();
   const { getWeeklyPracticeTime, getWeeklyPracticeByDay } = usePractice();
@@ -38,17 +32,9 @@ export default function Dashboard() {
   };
 
   return (
-    <Layout streak={7}>
+    <Layout>
       <div className="max-w-4xl mx-auto px-4 py-6">
         <h1 className="text-2xl font-bold mb-6">Dashboard</h1>
-
-        <Button 
-          size="lg" 
-          className="w-full mb-6"
-          onClick={() => router.push("/record")}
-        >
-          Start Practicing
-        </Button>
 
         <div className="grid grid-cols-3 gap-4 mb-6">
           <Card className="p-4">
@@ -85,23 +71,6 @@ export default function Dashboard() {
                   <div className="absolute inset-0 bg-foreground rounded-t-lg" />
                 </div>
                 <span className="text-xs text-muted-foreground">{day.day}</span>
-              </div>
-            ))}
-          </div>
-        </Card>
-
-        <Card className="p-6 mb-6">
-          <h2 className="text-lg font-semibold mb-4">Currently Mastering</h2>
-          <div className="space-y-3">
-            {currentSongs.map((song) => (
-              <div key={song.title} className="flex items-center gap-4">
-                <div className="h-12 w-12 bg-muted rounded-lg flex items-center justify-center flex-shrink-0">
-                  <Music className="h-5 w-5" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h3 className="font-semibold truncate">{song.title}</h3>
-                  <p className="text-sm text-muted-foreground">{song.artist}</p>
-                </div>
               </div>
             ))}
           </div>
