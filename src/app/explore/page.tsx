@@ -42,6 +42,7 @@ export default function Explore() {
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingFollowing, setIsLoadingFollowing] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
+  const [unfollowingId, setUnfollowingId] = useState<string | null>(null);
 
   // Load initial users (discover)
   useEffect(() => {
@@ -105,6 +106,30 @@ export default function Explore() {
 
   const navigateToUser = (username: string) => {
     router.push(`/user/${username}`);
+  };
+
+  // Unfollow a user and remove from list immediately
+  const handleUnfollow = async (e: React.MouseEvent, username: string, userId: string) => {
+    e.stopPropagation(); // Prevent navigation to user profile
+    setUnfollowingId(userId);
+    
+    try {
+      const res = await fetch(`/api/users/${username}/follow`, {
+        method: "POST",
+      });
+      
+      if (res.ok) {
+        const data = await res.json();
+        if (!data.following) {
+          // Remove user from the list immediately
+          setFollowingUsers(prev => prev.filter(u => u.id !== userId));
+        }
+      }
+    } catch (error) {
+      console.error("Error unfollowing user:", error);
+    } finally {
+      setUnfollowingId(null);
+    }
   };
 
   return (
@@ -256,12 +281,14 @@ export default function Explore() {
               ) : followingUsers.length > 0 ? (
                 <div className="space-y-2">
                   {followingUsers.map((user) => (
-                    <button
+                    <div
                       key={user.id}
-                      onClick={() => navigateToUser(user.username)}
-                      className="w-full p-4 bg-muted/50 rounded-lg hover:bg-muted transition-colors flex items-center gap-3 text-left"
+                      className="w-full p-4 bg-muted/50 rounded-lg hover:bg-muted transition-colors flex items-center gap-3"
                     >
-                      <div className="h-12 w-12 rounded-full bg-background flex items-center justify-center overflow-hidden flex-shrink-0">
+                      <div 
+                        className="h-12 w-12 rounded-full bg-background flex items-center justify-center overflow-hidden flex-shrink-0 cursor-pointer"
+                        onClick={() => navigateToUser(user.username)}
+                      >
                         {user.avatar_url ? (
                           <img
                             src={user.avatar_url}
@@ -272,16 +299,27 @@ export default function Explore() {
                           <User className="h-6 w-6" />
                         )}
                       </div>
-                      <div className="flex-1 min-w-0">
+                      <div 
+                        className="flex-1 min-w-0 cursor-pointer"
+                        onClick={() => navigateToUser(user.username)}
+                      >
                         <p className="font-semibold truncate">{user.name}</p>
                         <p className="text-sm text-muted-foreground truncate">@{user.username}</p>
                       </div>
-                      <div className="text-right">
-                        <span className="text-xs bg-secondary px-2 py-1 rounded-full">
-                          Following
-                        </span>
-                      </div>
-                    </button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-shrink-0"
+                        disabled={unfollowingId === user.id}
+                        onClick={(e) => handleUnfollow(e, user.username, user.id)}
+                      >
+                        {unfollowingId === user.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          "Unfollow"
+                        )}
+                      </Button>
+                    </div>
                   ))}
                 </div>
               ) : (
