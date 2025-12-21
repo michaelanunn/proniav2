@@ -197,8 +197,8 @@ export default function Onboarding() {
       case 2:
         return selectedInstruments.length > 0;
       case 3:
-        // Must select experience level AND 3 pieces
-        return experienceLevel.trim() && selectedPieces.length === 3;
+        // Must select experience level (pieces are optional)
+        return experienceLevel.trim().length > 0;
       case 4:
         return true;
       default:
@@ -431,46 +431,28 @@ export default function Onboarding() {
             </div>
           )}
 
-          {/* Step 3: Pieces */}
+          {/* Step 3: Experience Level */}
           {step === 3 && (
             <div className="space-y-4">
-              <h2 className="text-xl font-semibold text-center mb-2">Pick 3 pieces</h2>
-              <p className="text-sm text-muted-foreground text-center mb-4">
-                What pieces are you working on?
+              <h2 className="text-xl font-semibold text-center mb-2">What's your level?</h2>
+              <p className="text-sm text-muted-foreground text-center mb-6">
+                Select your experience level
               </p>
 
-              <div className="flex gap-2 mb-4 overflow-x-auto pb-2">
+              <div className="space-y-3">
                 {experienceLevels.map((level) => (
-                  <Button
+                  <button
                     key={level.id}
-                    variant={experienceLevel === level.id ? "default" : "outline"}
-                    size="sm"
                     onClick={() => setExperienceLevel(level.id)}
-                    className="whitespace-nowrap"
+                    className={`w-full p-4 rounded-lg border-2 text-left transition-colors ${
+                      experienceLevel === level.id
+                        ? "border-foreground bg-muted"
+                        : "border-border hover:border-foreground/50"
+                    }`}
                   >
-                    {level.label}
-                  </Button>
+                    <p className="font-semibold">{level.label}</p>
+                  </button>
                 ))}
-              </div>
-              
-              <div className="space-y-2 max-h-80 overflow-y-auto">
-                {filteredPieces.map((piece) => {
-                  const isSelected = selectedPieces.includes(piece.id);
-                  return (
-                    <button
-                      key={piece.id}
-                      onClick={() => togglePiece(piece.id)}
-                      className={`w-full p-3 rounded-lg border text-left transition-colors ${
-                        isSelected
-                          ? "border-foreground bg-muted"
-                          : "border-border hover:border-foreground/50"
-                      }`}
-                    >
-                      <p className="font-semibold text-sm">{piece.title}</p>
-                      <p className="text-xs text-muted-foreground">{piece.composer}</p>
-                    </button>
-                  );
-                })}
               </div>
             </div>
           )}
@@ -528,8 +510,6 @@ export default function Onboarding() {
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : step === 4 ? (
                     "Get Started"
-                  ) : step === 3 && selectedPieces.length < 3 ? (
-                    `Selected ${selectedPieces.length}/3`
                   ) : (
                     "Next"
                   )}
