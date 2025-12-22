@@ -69,10 +69,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     const init = async () => {
       if (hasSupabase && supabase) {
-        setIsLoading(true);
+        // Try to load cached data first for instant render
         try {
-          const { data } = await supabase.auth.getUser();
-          const currentUser = data.user;
+          const cachedUser = localStorage.getItem('pronia-user');
+          const cachedProfile = localStorage.getItem('pronia-profile');
+          if (cachedUser && cachedProfile) {
+            setUser(JSON.parse(cachedUser));
+            setProfile(JSON.parse(cachedProfile));
+            setIsLoading(false);
+          }
+        } catch (e) {}
+
+        // Then verify with Supabase (use getSession - faster than getUser)
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          const currentUser = session?.user;
+          
           if (currentUser && mounted) {
             const userObj: User = {
               id: currentUser.id,
@@ -80,19 +92,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               user_metadata: (currentUser.user_metadata as any) || {},
             };
             setUser(userObj);
+            localStorage.setItem('pronia-user', JSON.stringify(userObj));
 
             const { data: profileData } = await supabase.from('profiles').select('*').eq('id', currentUser.id).single();
             if (profileData && mounted) {
               setProfile(profileData as Profile);
+              localStorage.setItem('pronia-profile', JSON.stringify(profileData));
             }
           } else if (mounted) {
             setUser(null);
             setProfile(null);
+            localStorage.removeItem('pronia-user');
+            localStorage.removeItem('pronia-profile');
           }
         } catch (err) {
           console.error('Supabase init error:', err);
         } finally {
-          setIsLoading(false);
+          if (mounted) setIsLoading(false);
         }
 
         const { data: listener } = supabase.auth.onAuthStateChange(async (event, session) => {
