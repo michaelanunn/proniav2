@@ -91,12 +91,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               email: currentUser.email || "",
               user_metadata: (currentUser.user_metadata as any) || {},
             };
-            setUser(userObj);
+            // Only update if user ID changed to prevent flickering
+            setUser(prev => prev?.id === userObj.id ? prev : userObj);
             localStorage.setItem('pronia-user', JSON.stringify(userObj));
 
             const { data: profileData } = await supabase.from('profiles').select('*').eq('id', currentUser.id).single();
             if (profileData && mounted) {
-              setProfile(profileData as Profile);
+              // Only update if there are actual changes
+              setProfile(prev => {
+                if (prev?.id === profileData.id && prev?.updated_at === profileData.updated_at) {
+                  return prev;
+                }
+                return profileData as Profile;
+              });
               localStorage.setItem('pronia-profile', JSON.stringify(profileData));
             }
           } else if (mounted) {

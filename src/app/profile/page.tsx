@@ -65,11 +65,10 @@ export default function Profile() {
 
   // Redirect if not logged in
   useEffect(() => {
-  if (!isLoading && !user) {
-    router.replace("/login");
-  }
-}, [user, isLoading, router]);
-
+    if (!isLoading && !user) {
+      router.replace("/login");
+    }
+  }, [user, isLoading, router]);
 
   const formatDuration = (seconds: number) => {
     const hrs = Math.floor(seconds / 3600);
@@ -106,7 +105,8 @@ export default function Profile() {
     setPostData({ youtubeUrl: "", title: "", notes: "" });
   };
 
-  if (isLoading) {
+  // Single unified loading check - prevents flickering
+  if (isLoading || !user || !profile) {
     return (
       <Layout>
         <div className="flex items-center justify-center py-20">
@@ -115,19 +115,6 @@ export default function Profile() {
       </Layout>
     );
   }
-
-  if (!user) return null;
-
-
-if (!profile) {
-  return (
-    <Layout>
-      <div className="flex items-center justify-center py-20">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
-    </Layout>
-  );
-}
 
 
   return (
@@ -189,21 +176,21 @@ if (!profile) {
             
             {/* Name with instrument badge to the side */}
             <div className="flex items-center justify-center gap-2 mb-1">
-              <h1 className="text-xl font-bold">{profile.name}</h1>
-              {profile.instruments?.length > 0 && (
+              <h1 className="text-xl font-bold">{profile.name || "User"}</h1>
+              {profile.instruments && profile.instruments.length > 0 && (
                 <span className="px-2 py-0.5 bg-secondary rounded-full text-xs font-medium capitalize">
                   {profile.instruments[0]}
                 </span>
               )}
             </div>
             
-            <p className="text-sm text-muted-foreground mb-3">@{profile.username}</p>
+            <p className="text-sm text-muted-foreground mb-3">@{profile.username || "user"}</p>
             {profile.bio && (
               <p className="text-sm mb-4 px-4">{profile.bio}</p>
             )}
             
             {/* Show additional instruments if more than one */}
-            {profile.instruments?.length > 1 && (
+            {profile.instruments && profile.instruments.length > 1 && (
               <div className="flex gap-2 mb-4">
                 {profile.instruments.slice(1).map((instrument) => (
                   <span
