@@ -13,7 +13,8 @@ import {
   Pause,
   Youtube,
   Share2,
-  Trash2
+  Trash2,
+  Loader2
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { usePractice } from "@/contexts/PracticeContext";
@@ -87,17 +88,26 @@ export default function Record() {
     setShowSavePrompt(true);
   };
 
-  const handleSaveLog = () => {
-    addSession({
-      date: new Date().toISOString(),
-      duration: savedDuration,
-      piece: sessionData.songTitle || "Practice Session",
-      composer: sessionData.composer,
-      notes: sessionData.notes,
-    });
-    
-    setShowSavePrompt(false);
-    setShowSuccess(true);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const handleSaveLog = async () => {
+    setIsSaving(true);
+    try {
+      await addSession({
+        date: new Date().toISOString(),
+        duration: savedDuration,
+        piece: sessionData.songTitle || "Practice Session",
+        composer: sessionData.composer,
+        notes: sessionData.notes,
+      });
+      
+      setShowSavePrompt(false);
+      setShowSuccess(true);
+    } catch (err) {
+      console.error("Error saving session:", err);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleDiscardPractice = () => {
@@ -284,15 +294,21 @@ export default function Record() {
                   variant="outline"
                   className="flex-1"
                   onClick={handleDiscardPractice}
+                  disabled={isSaving}
                 >
                   Discard
                 </Button>
                 <Button 
                   className="flex-1"
                   onClick={handleSaveLog}
+                  disabled={isSaving}
                 >
-                  <Check className="mr-2 h-5 w-5" />
-                  Save Log
+                  {isSaving ? (
+                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                  ) : (
+                    <Check className="mr-2 h-5 w-5" />
+                  )}
+                  {isSaving ? "Saving..." : "Save Log"}
                 </Button>
               </div>
             </div>

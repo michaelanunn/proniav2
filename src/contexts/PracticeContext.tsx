@@ -1,6 +1,8 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from "react";
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import { useAuth } from "./AuthContext";
 
 interface PracticeSession {
   id: string;
@@ -13,44 +15,150 @@ interface PracticeSession {
 
 interface PracticeContextType {
   sessions: PracticeSession[];
-  addSession: (session: Omit<PracticeSession, "id">) => void;
-  deleteSession: (id: string) => void;
+  isLoading: boolean;
+  addSession: (session: Omit<PracticeSession, "id">) => Promise<void>;
+  deleteSession: (id: string) => Promise<void>;
   getTotalPracticeTime: () => number; // in seconds
   getWeeklyPracticeTime: () => number; // in seconds
   getWeeklyPracticeByDay: () => { day: string; hours: number }[];
   getStreak: () => number; // consecutive days of practice
+  refreshSessions: () => Promise<void>;
 }
 
 const PracticeContext = createContext<PracticeContextType | undefined>(undefined);
 
-const STORAGE_KEY = "pronia_practice_sessions";
-
 export const PracticeProvider = ({ children }: { children: ReactNode }) => {
+  const { user } = useAuth();
+  const supabase = createClientComponentClient();
   const [sessions, setSessions] = useState<PracticeSession[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Load stored sessions on mount
-  useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      setSessions(JSON.parse(stored));
+  // Fetch sessions from Supabase
+  const fetchSessions = useCallback(async () => {
+    if (!user) {
+      setSessions([]);
+      setIsLoading(false);
+      return;
     }
-  }, []);
 
-  // Save to localStorage whenever sessions change
+    try {
+      const { data, error } = await supabase
+        .from("practice_sessions")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("practiced_at", { ascending: false });
+
+      if (error) {
+        // Table might not exist yet
+        if (error.code === "42P01") {
+          console.log("Practice sessions table not found, using empty state");
+          setSessions([]);
+        } else {
+          console.error("Error fetching sessions:", error);
+        }
+      } else {
+        setSessions(
+          (data || []).map((s) => ({
+            id: s.id,
+            date: s.practiced_at,
+            duration: s.duration,
+            piece: s.piece || undefined,
+            composer: s.composer || undefined,
+            notes: s.notes || undefined,
+          }))
+        );
+      }
+    } catch (err) {
+      console.error("Error:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [user, supabase]);
+
+  // Load sessions on mount and when user changes
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions));
-  }, [sessions]);
+    fetchSessions();
+  }, [fetchSessions]);
 
-  const addSession = (session: Omit<PracticeSession, "id">) => {
-    const newSession: PracticeSession = {
-      ...session,
-      id: Date.now().toString(),
-    };
-    setSessions((prev) => [newSession, ...prev]);
+  const refreshSessions = async () => {
+    await fetchSessions();
   };
 
-  const deleteSession = (id: string) => {
+  const addSession = async (session: Omit<PracticeSession, "id">) => {
+    if (!user) return;
+
+    // Optimistic update
+    const tempId = `temp-${Date.now()}`;
+    const newSession: PracticeSession = {
+      ...session,
+      id: tempId,
+    };
+    setSessions((prev) => [newSession, ...prev]);
+
+    try {
+      const { data, error } = await supabase
+        .from("practice_sessions")
+        .insert({
+          user_id: user.id,
+          duration: session.duration,
+          piece: session.piece || null,
+          composer: session.composer || null,
+          notes: session.notes || null,
+          practiced_at: session.date,
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error("Error adding session:", error);
+        // Revert optimistic update
+        setSessions((prev) => prev.filter((s) => s.id !== tempId));
+      } else if (data) {
+        // Replace temp with real data
+        setSessions((prev) =>
+          prev.map((s) =>
+            s.id === tempId
+              ? {
+                  id: data.id,
+                  date: data.practiced_at,
+                  duration: data.duration,
+                  piece: data.piece || undefined,
+                  composer: data.composer || undefined,
+                  notes: data.notes || undefined,
+                }
+              : s
+          )
+        );
+      }
+    } catch (err) {
+      console.error("Error:", err);
+      setSessions((prev) => prev.filter((s) => s.id !== tempId));
+    }
+  };
+
+  const deleteSession = async (id: string) => {
+    if (!user) return;
+
+    // Optimistic update
+    const previousSessions = [...sessions];
     setSessions((prev) => prev.filter((session) => session.id !== id));
+
+    try {
+      const { error } = await supabase
+        .from("practice_sessions")
+        .delete()
+        .eq("id", id)
+        .eq("user_id", user.id);
+
+      if (error) {
+        console.error("Error deleting session:", error);
+        // Revert
+        setSessions(previousSessions);
+      }
+    } catch (err) {
+      console.error("Error:", err);
+      setSessions(previousSessions);
+    }
   };
 
   const getTotalPracticeTime = () => {
@@ -142,12 +250,14 @@ export const PracticeProvider = ({ children }: { children: ReactNode }) => {
     <PracticeContext.Provider
       value={{
         sessions,
+        isLoading,
         addSession,
         deleteSession,
         getTotalPracticeTime,
         getWeeklyPracticeTime,
         getWeeklyPracticeByDay,
         getStreak,
+        refreshSessions,
       }}
     >
       {children}
@@ -162,4 +272,3 @@ export const usePractice = () => {
   }
   return context;
 };
-

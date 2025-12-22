@@ -227,16 +227,16 @@ export const AddPieceModal = ({ isOpen, onClose, onAdd }: AddPieceModalProps) =>
         <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 flex-shrink-0">
           <button
             onClick={onClose}
-            className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+            className="p-1.5 hover:bg-gray-200 rounded-full transition-colors"
           >
-            <X className="h-5 w-5 text-gray-600" />
+            <X className="h-5 w-5 text-gray-900" />
           </button>
           <h2 className="text-base font-semibold text-gray-900">Add to Library</h2>
           <Button
             onClick={handleAdd}
             disabled={!selectedPiece && (!customTitle || !customComposer)}
             size="sm"
-            className="bg-accent hover:bg-accent/90 text-white font-semibold px-4 h-8 rounded-md disabled:opacity-50"
+            className="bg-gray-900 hover:bg-black text-white font-bold px-5 h-8 rounded-md disabled:opacity-40 disabled:bg-gray-500"
           >
             Add
           </Button>

@@ -266,5 +266,85 @@ BEGIN
 END $$;
 
 -- =====================================================
+-- 8. PRACTICE SESSIONS TABLE
+-- =====================================================
+create table if not exists practice_sessions (
+  id uuid default gen_random_uuid() primary key,
+  user_id uuid references auth.users(id) on delete cascade not null,
+  duration integer not null, -- in seconds
+  piece text,
+  composer text,
+  notes text,
+  practiced_at timestamp with time zone default now(),
+  created_at timestamp with time zone default now()
+);
+
+create index if not exists practice_sessions_user_idx on practice_sessions(user_id);
+create index if not exists practice_sessions_date_idx on practice_sessions(practiced_at);
+
+alter table practice_sessions enable row level security;
+
+DROP POLICY IF EXISTS "Users can view own practice sessions" ON public.practice_sessions;
+DROP POLICY IF EXISTS "Users can create own practice sessions" ON public.practice_sessions;
+DROP POLICY IF EXISTS "Users can update own practice sessions" ON public.practice_sessions;
+DROP POLICY IF EXISTS "Users can delete own practice sessions" ON public.practice_sessions;
+
+CREATE POLICY "Users can view own practice sessions" ON public.practice_sessions
+  FOR SELECT TO authenticated
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can create own practice sessions" ON public.practice_sessions
+  FOR INSERT TO authenticated
+  WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update own practice sessions" ON public.practice_sessions
+  FOR UPDATE TO authenticated
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete own practice sessions" ON public.practice_sessions
+  FOR DELETE TO authenticated
+  USING (auth.uid() = user_id);
+
+-- =====================================================
+-- 9. LIBRARY PIECES TABLE
+-- =====================================================
+create table if not exists library_pieces (
+  id uuid default gen_random_uuid() primary key,
+  user_id uuid references auth.users(id) on delete cascade not null,
+  title text not null,
+  composer text not null,
+  era text default 'Other',
+  status text default 'Not Started' check (status in ('Not Started', 'In Progress', 'Mastered')),
+  progress integer default 0 check (progress >= 0 and progress <= 100),
+  created_at timestamp with time zone default now(),
+  updated_at timestamp with time zone default now()
+);
+
+create index if not exists library_pieces_user_idx on library_pieces(user_id);
+
+alter table library_pieces enable row level security;
+
+DROP POLICY IF EXISTS "Users can view own library pieces" ON public.library_pieces;
+DROP POLICY IF EXISTS "Users can create own library pieces" ON public.library_pieces;
+DROP POLICY IF EXISTS "Users can update own library pieces" ON public.library_pieces;
+DROP POLICY IF EXISTS "Users can delete own library pieces" ON public.library_pieces;
+
+CREATE POLICY "Users can view own library pieces" ON public.library_pieces
+  FOR SELECT TO authenticated
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can create own library pieces" ON public.library_pieces
+  FOR INSERT TO authenticated
+  WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update own library pieces" ON public.library_pieces
+  FOR UPDATE TO authenticated
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete own library pieces" ON public.library_pieces
+  FOR DELETE TO authenticated
+  USING (auth.uid() = user_id);
+
+-- =====================================================
 -- DONE! Your social features database is ready.
 -- =====================================================

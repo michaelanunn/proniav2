@@ -9,12 +9,7 @@ import { Heart, MessageCircle, Share2, Search, Music, Loader2, Trash2, Youtube, 
 import { useRouter } from "next/navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/contexts/AuthContext";
-import { createClient } from "@supabase/supabase-js";
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 
 interface Post {
   id: string;
@@ -58,6 +53,7 @@ function getYouTubeEmbedUrl(url: string): string | null {
 export default function Feed() {
   const router = useRouter();
   const { user, profile } = useAuth();
+  const supabase = createClientComponentClient();
   const [activeTab, setActiveTab] = useState<"for-you" | "following">("for-you");
   const [posts, setPosts] = useState<Post[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -66,6 +62,7 @@ export default function Feed() {
   const [newPostYoutubeUrl, setNewPostYoutubeUrl] = useState("");
   const [showCreatePost, setShowCreatePost] = useState(false);
   const [deletingPostId, setDeletingPostId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   // Fetch posts
   const fetchPosts = useCallback(async () => {
@@ -115,28 +112,41 @@ export default function Feed() {
         return;
       }
 
-      // Get likes for these posts
+      // Get likes for these posts (if the table exists)
       const postIds = postsData?.map(p => p.id) || [];
       
-      // Get likes counts
-      const { data: likesData } = await supabase
-        .from("likes")
-        .select("post_id")
-        .in("post_id", postIds);
+      let likesCount: Record<string, number> = {};
+      let userLikedPosts = new Set<string>();
+      
+      if (postIds.length > 0) {
+        try {
+          // Get likes counts
+          const { data: likesData, error: likesError } = await supabase
+            .from("likes")
+            .select("post_id")
+            .in("post_id", postIds);
 
-      // Get user's likes
-      const { data: userLikes } = await supabase
-        .from("likes")
-        .select("post_id")
-        .eq("user_id", user.id)
-        .in("post_id", postIds);
+          if (!likesError && likesData) {
+            likesData.forEach(like => {
+              likesCount[like.post_id] = (likesCount[like.post_id] || 0) + 1;
+            });
+          }
 
-      const likesCount: Record<string, number> = {};
-      likesData?.forEach(like => {
-        likesCount[like.post_id] = (likesCount[like.post_id] || 0) + 1;
-      });
+          // Get user's likes
+          const { data: userLikes, error: userLikesError } = await supabase
+            .from("likes")
+            .select("post_id")
+            .eq("user_id", user.id)
+            .in("post_id", postIds);
 
-      const userLikedPosts = new Set(userLikes?.map(l => l.post_id) || []);
+          if (!userLikesError && userLikes) {
+            userLikedPosts = new Set(userLikes.map(l => l.post_id));
+          }
+        } catch {
+          // Likes table may not exist yet - continue without likes
+          console.log("Likes table not available");
+        }
+      }
 
       const transformedPosts: Post[] = (postsData || []).map((post: any) => ({
         ...post,
@@ -152,7 +162,7 @@ export default function Feed() {
     } finally {
       setIsLoading(false);
     }
-  }, [user, activeTab]);
+  }, [user, activeTab, supabase]);
 
   useEffect(() => {
     fetchPosts();
@@ -231,6 +241,8 @@ export default function Feed() {
     }
 
     setIsPosting(true);
+    setError(null);
+    
     try {
       const response = await fetch("/api/posts", {
         method: "POST",
@@ -242,14 +254,34 @@ export default function Feed() {
         }),
       });
 
+      const data = await response.json();
+      
       if (response.ok) {
         setNewPostContent("");
         setNewPostYoutubeUrl("");
         setShowCreatePost(false);
-        fetchPosts();
+        // Add the new post to the top of the list immediately
+        if (data.post) {
+          const newPost: Post = {
+            ...data.post,
+            profiles: profile ? {
+              id: profile.id,
+              username: profile.username,
+              name: profile.name,
+              avatar_url: profile.avatar_url,
+            } : data.post.profiles,
+            likes_count: 0,
+            is_liked: false,
+          };
+          setPosts(prev => [newPost, ...prev]);
+        }
+      } else {
+        console.error("Error creating post:", data.error);
+        setError(data.error || "Failed to create post");
       }
-    } catch (error) {
-      console.error("Error creating post:", error);
+    } catch (err) {
+      console.error("Error creating post:", err);
+      setError("Failed to create post. Please try again.");
     } finally {
       setIsPosting(false);
     }
@@ -280,6 +312,19 @@ export default function Feed() {
   return (
     <Layout>
       <div className="max-w-2xl mx-auto px-4 py-6">
+        {/* Search Bar - Links to Explore */}
+        <div 
+          className="mb-4 cursor-pointer"
+          onClick={() => router.push("/explore")}
+        >
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+            <div className="w-full pl-10 pr-4 py-2.5 bg-muted/50 rounded-lg text-muted-foreground text-sm">
+              Search users, composers, pieces...
+            </div>
+          </div>
+        </div>
+
         {/* Tabs */}
         <div className="flex items-center justify-center gap-8 border-b border-border mb-6">
           <button
@@ -341,6 +386,9 @@ export default function Feed() {
                     className="flex-1 text-sm bg-transparent border-b border-border focus:border-primary outline-none pb-1"
                   />
                 </div>
+                {error && (
+                  <p className="text-sm text-red-500">{error}</p>
+                )}
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-muted-foreground">
                     {newPostContent.length}/500
@@ -353,6 +401,7 @@ export default function Feed() {
                         setShowCreatePost(false);
                         setNewPostContent("");
                         setNewPostYoutubeUrl("");
+                        setError(null);
                       }}
                     >
                       Cancel

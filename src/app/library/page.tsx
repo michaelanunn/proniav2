@@ -3,100 +3,216 @@
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Search, Play, Plus, X, Trash2 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { Search, Play, Plus, X, Trash2, Loader2 } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
 import { AddPieceModal } from "@/components/AddPieceModal";
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface Piece {
   id: string;
   title: string;
-  artist: string;
+  composer: string;
   status: "Not Started" | "In Progress" | "Mastered";
   progress: number;
   era?: string;
 }
 
-const defaultPieces: Piece[] = [
-  {
-    id: "1",
-    title: "Moonlight Sonata",
-    artist: "Ludwig van Beethoven",
-    status: "In Progress",
-    progress: 65,
-  },
-  {
-    id: "2",
-    title: "Clair de Lune",
-    artist: "Claude Debussy",
-    status: "Mastered",
-    progress: 100,
-  },
-  {
-    id: "3",
-    title: "Für Elise",
-    artist: "Ludwig van Beethoven",
-    status: "In Progress",
-    progress: 40,
-  },
-];
-
 export default function Library() {
+  const { user } = useAuth();
+  const supabase = createClientComponentClient();
   const [filter, setFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
-  const [pieces, setPieces] = useState<Piece[]>(defaultPieces);
+  const [pieces, setPieces] = useState<Piece[]>([]);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
 
-  // Load from localStorage
-  useEffect(() => {
-    const saved = localStorage.getItem("library-pieces");
-    if (saved) {
-      setPieces(JSON.parse(saved));
+  // Fetch pieces from Supabase
+  const fetchPieces = useCallback(async () => {
+    if (!user) {
+      setIsLoading(false);
+      return;
     }
-  }, []);
 
-  // Save to localStorage
+    try {
+      const { data, error } = await supabase
+        .from("library_pieces")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        console.error("Error fetching library:", error);
+        // If table doesn't exist, show empty state
+        if (error.code === "42P01") {
+          setPieces([]);
+        }
+      } else {
+        setPieces(
+          (data || []).map((p) => ({
+            id: p.id,
+            title: p.title,
+            composer: p.composer,
+            status: p.status as Piece["status"],
+            progress: p.progress,
+            era: p.era,
+          }))
+        );
+      }
+    } catch (err) {
+      console.error("Error:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [user, supabase]);
+
   useEffect(() => {
-    localStorage.setItem("library-pieces", JSON.stringify(pieces));
-  }, [pieces]);
+    fetchPieces();
+  }, [fetchPieces]);
 
-  const handleAddPiece = (piece: { title: string; composer: string; era: string }) => {
+  const handleAddPiece = async (piece: { title: string; composer: string; era: string }) => {
+    if (!user) return;
+
+    setIsSaving(true);
+    
+    // Optimistic update
+    const tempId = `temp-${Date.now()}`;
     const newPiece: Piece = {
-      id: Date.now().toString(),
+      id: tempId,
       title: piece.title,
-      artist: piece.composer,
+      composer: piece.composer,
       status: "Not Started",
       progress: 0,
       era: piece.era,
     };
-    setPieces([newPiece, ...pieces]);
+    setPieces((prev) => [newPiece, ...prev]);
+
+    try {
+      const { data, error } = await supabase
+        .from("library_pieces")
+        .insert({
+          user_id: user.id,
+          title: piece.title,
+          composer: piece.composer,
+          era: piece.era,
+          status: "Not Started",
+          progress: 0,
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error("Error adding piece:", error);
+        // Revert optimistic update
+        setPieces((prev) => prev.filter((p) => p.id !== tempId));
+        alert("Failed to add piece. Please try again.");
+      } else if (data) {
+        // Replace temp with real data
+        setPieces((prev) =>
+          prev.map((p) =>
+            p.id === tempId
+              ? {
+                  id: data.id,
+                  title: data.title,
+                  composer: data.composer,
+                  status: data.status as Piece["status"],
+                  progress: data.progress,
+                  era: data.era,
+                }
+              : p
+          )
+        );
+      }
+    } catch (err) {
+      console.error("Error:", err);
+      setPieces((prev) => prev.filter((p) => p.id !== tempId));
+    } finally {
+      setIsSaving(false);
+    }
   };
 
-  const handleDeletePiece = (id: string) => {
-    setPieces(pieces.filter(p => p.id !== id));
+  const handleDeletePiece = async (id: string) => {
+    if (!user) return;
+
+    // Optimistic update
+    const previousPieces = [...pieces];
+    setPieces((prev) => prev.filter((p) => p.id !== id));
+
+    try {
+      const { error } = await supabase
+        .from("library_pieces")
+        .delete()
+        .eq("id", id)
+        .eq("user_id", user.id);
+
+      if (error) {
+        console.error("Error deleting piece:", error);
+        // Revert
+        setPieces(previousPieces);
+      }
+    } catch (err) {
+      console.error("Error:", err);
+      setPieces(previousPieces);
+    }
   };
 
-  const handleUpdateProgress = (id: string, progress: number) => {
-    setPieces(pieces.map(p => {
-      if (p.id !== id) return p;
-      let status: Piece["status"] = "Not Started";
-      if (progress >= 100) status = "Mastered";
-      else if (progress > 0) status = "In Progress";
-      return { ...p, progress, status };
-    }));
+  const handleUpdateProgress = async (id: string, progress: number) => {
+    if (!user) return;
+
+    let status: Piece["status"] = "Not Started";
+    if (progress >= 100) status = "Mastered";
+    else if (progress > 0) status = "In Progress";
+
+    // Optimistic update
+    setPieces((prev) =>
+      prev.map((p) => (p.id === id ? { ...p, progress, status } : p))
+    );
+
+    try {
+      const { error } = await supabase
+        .from("library_pieces")
+        .update({ progress, status, updated_at: new Date().toISOString() })
+        .eq("id", id)
+        .eq("user_id", user.id);
+
+      if (error) {
+        console.error("Error updating progress:", error);
+        // Refetch to get correct state
+        fetchPieces();
+      }
+    } catch (err) {
+      console.error("Error:", err);
+    }
   };
 
   const filteredPieces = pieces.filter((piece) => {
-    const matchesFilter = 
-      filter === "all" || 
+    const matchesFilter =
+      filter === "all" ||
       (filter === "progress" && piece.status === "In Progress") ||
       (filter === "mastered" && piece.status === "Mastered");
-    
-    const matchesSearch = 
+
+    const matchesSearch =
       piece.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      piece.artist.toLowerCase().includes(searchQuery.toLowerCase());
-    
+      piece.composer.toLowerCase().includes(searchQuery.toLowerCase());
+
     return matchesFilter && matchesSearch;
   });
+
+  if (!user) {
+    return (
+      <Layout>
+        <div className="max-w-4xl mx-auto px-4 py-6">
+          <div className="text-center py-12">
+            <p className="text-muted-foreground">Sign in to view your library</p>
+            <Button className="mt-4" onClick={() => window.location.href = "/login"}>
+              Sign In
+            </Button>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
@@ -118,14 +234,14 @@ export default function Library() {
             size="sm"
             onClick={() => setFilter("progress")}
           >
-            In Progress ({pieces.filter(p => p.status === "In Progress").length})
+            In Progress ({pieces.filter((p) => p.status === "In Progress").length})
           </Button>
           <Button
             variant={filter === "mastered" ? "default" : "outline"}
             size="sm"
             onClick={() => setFilter("mastered")}
           >
-            Mastered ({pieces.filter(p => p.status === "Mastered").length})
+            Mastered ({pieces.filter((p) => p.status === "Mastered").length})
           </Button>
         </div>
 
@@ -148,9 +264,17 @@ export default function Library() {
           )}
         </div>
 
-        {filteredPieces.length === 0 ? (
+        {isLoading ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          </div>
+        ) : filteredPieces.length === 0 ? (
           <div className="text-center py-12">
-            <p className="text-muted-foreground">No pieces found</p>
+            <p className="text-muted-foreground">
+              {pieces.length === 0
+                ? "Your library is empty. Add your first piece!"
+                : "No pieces found"}
+            </p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -160,12 +284,14 @@ export default function Library() {
                   <div className="h-16 w-16 bg-muted rounded-lg flex items-center justify-center flex-shrink-0">
                     <Play className="h-6 w-6" />
                   </div>
-                  
+
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between">
                       <div>
                         <h3 className="font-semibold truncate">{piece.title}</h3>
-                        <p className="text-sm text-muted-foreground">{piece.artist}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {piece.composer}
+                        </p>
                       </div>
                       <button
                         onClick={() => handleDeletePiece(piece.id)}
@@ -180,10 +306,14 @@ export default function Library() {
                         min="0"
                         max="100"
                         value={piece.progress}
-                        onChange={(e) => handleUpdateProgress(piece.id, parseInt(e.target.value))}
+                        onChange={(e) =>
+                          handleUpdateProgress(piece.id, parseInt(e.target.value))
+                        }
                         className="flex-1 h-2 bg-[rgba(245,245,245,1)] rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-foreground [&::-webkit-slider-thumb]:shadow-md"
                       />
-                      <span className="text-xs text-muted-foreground w-8 text-right">{piece.progress}%</span>
+                      <span className="text-xs text-muted-foreground w-8 text-right">
+                        {piece.progress}%
+                      </span>
                     </div>
                     {piece.status === "Mastered" && (
                       <span className="inline-block mt-1 text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
@@ -197,11 +327,16 @@ export default function Library() {
           </div>
         )}
 
-        <Button 
+        <Button
           className="w-full mt-6 gap-2"
           onClick={() => setIsAddModalOpen(true)}
+          disabled={isSaving}
         >
-          <Plus className="h-5 w-5" />
+          {isSaving ? (
+            <Loader2 className="h-5 w-5 animate-spin" />
+          ) : (
+            <Plus className="h-5 w-5" />
+          )}
           Add New Piece
         </Button>
       </div>

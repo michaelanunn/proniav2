@@ -440,10 +440,10 @@ export default function UserProfilePage() {
                     <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                   </div>
                 ) : posts.length === 0 ? (
-                  <div className="text-center py-12 text-muted-foreground">
+              <div className="text-center py-12 text-muted-foreground">
                     <Music className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                    <p className="text-sm">No posts yet</p>
-                  </div>
+                <p className="text-sm">No posts yet</p>
+              </div>
                 ) : (
                   <div className="space-y-4">
                     {posts.map((post) => (

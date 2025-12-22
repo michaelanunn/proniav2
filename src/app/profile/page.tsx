@@ -399,21 +399,21 @@ if (!profile) {
                 <div key={session.id} className="p-4 border border-border rounded-lg">
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold mb-1">
-                        {session.piece || "Practice Session"}
-                      </h3>
-                      <p className="text-sm text-muted-foreground">
-                        {new Date(session.date).toLocaleDateString("en-US", { 
-                          weekday: "short",
-                          month: "short", 
-                          day: "numeric",
-                          hour: "numeric",
-                          minute: "2-digit"
-                        })} • {formatDuration(session.duration)}
-                      </p>
-                      {session.notes && (
-                        <p className="text-sm mt-2 text-muted-foreground">{session.notes}</p>
-                      )}
+                  <h3 className="font-semibold mb-1">
+                    {session.piece || "Practice Session"}
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    {new Date(session.date).toLocaleDateString("en-US", { 
+                      weekday: "short",
+                      month: "short", 
+                      day: "numeric",
+                      hour: "numeric",
+                      minute: "2-digit"
+                    })} • {formatDuration(session.duration)}
+                  </p>
+                  {session.notes && (
+                    <p className="text-sm mt-2 text-muted-foreground">{session.notes}</p>
+                  )}
                     </div>
                     <Button
                       variant="ghost"

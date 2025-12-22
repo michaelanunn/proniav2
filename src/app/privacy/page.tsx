@@ -1,89 +1,86 @@
+"use client";
+
+import Link from "next/link";
+
 export default function PrivacyPolicy() {
   return (
-    <div className="min-h-screen bg-white">
-      <div className="max-w-3xl mx-auto px-5 py-10">
-        <h1 className="text-3xl font-bold mb-2 text-gray-900">Privacy Policy</h1>
-        <p className="text-gray-500 italic mb-8">Effective Date: December 21, 2024</p>
-        
-        <section className="mb-8">
-          <h2 className="text-xl font-semibold mb-3 text-gray-900">1. Information We Collect</h2>
-          <p className="text-gray-700 leading-relaxed mb-3">We collect information you provide directly to us, including:</p>
-          <ul className="list-disc list-inside text-gray-700 space-y-2 ml-4">
-            <li>Account information (name, email, password)</li>
-            <li>Profile information</li>
-            <li>Usage data and analytics</li>
-            <li>Communications with us</li>
-          </ul>
-        </section>
-        
-        <section className="mb-8">
-          <h2 className="text-xl font-semibold mb-3 text-gray-900">2. How We Use Your Information</h2>
-          <p className="text-gray-700 leading-relaxed mb-3">We use the information we collect to:</p>
-          <ul className="list-disc list-inside text-gray-700 space-y-2 ml-4">
-            <li>Provide, maintain, and improve our Service</li>
-            <li>Send you technical notices and support messages</li>
-            <li>Respond to your comments and questions</li>
-            <li>Monitor and analyze trends, usage, and activities</li>
-          </ul>
-        </section>
-        
-        <section className="mb-8">
-          <h2 className="text-xl font-semibold mb-3 text-gray-900">3. Information Sharing</h2>
-          <p className="text-gray-700 leading-relaxed mb-3">
-            We do not sell your personal information. We may share your information only in the following circumstances:
+    <div className="min-h-screen bg-white text-black px-6 py-12">
+      <div className="max-w-2xl mx-auto">
+        {/* Back link */}
+        <Link 
+          href="/" 
+          className="text-gray-500 hover:text-black text-lg mb-8 inline-block"
+          style={{ fontFamily: "Courier New, Courier, monospace" }}
+        >
+          ←
+        </Link>
+
+        {/* Title */}
+        <h1 
+          className="text-4xl font-bold mb-8"
+          style={{ fontFamily: "Times New Roman, serif" }}
+        >
+          Privacy Policy
+        </h1>
+
+        {/* Content */}
+        <div 
+          className="space-y-6 text-gray-700"
+          style={{ fontFamily: "Courier New, Courier, monospace" }}
+        >
+          <p className="text-sm text-gray-500">
+            Last updated: December 21, 2025
           </p>
-          <ul className="list-disc list-inside text-gray-700 space-y-2 ml-4">
-            <li>With your consent</li>
-            <li>To comply with legal obligations</li>
-            <li>To protect rights, property, or safety</li>
-            <li>With service providers who assist in our operations</li>
-          </ul>
-        </section>
-        
-        <section className="mb-8">
-          <h2 className="text-xl font-semibold mb-3 text-gray-900">4. Data Security</h2>
-          <p className="text-gray-700 leading-relaxed">
-            We implement appropriate technical and organizational measures to protect your personal information against unauthorized or unlawful processing, accidental loss, destruction, or damage.
-          </p>
-        </section>
-        
-        <section className="mb-8">
-          <h2 className="text-xl font-semibold mb-3 text-gray-900">5. Your Rights</h2>
-          <p className="text-gray-700 leading-relaxed mb-3">You have the right to:</p>
-          <ul className="list-disc list-inside text-gray-700 space-y-2 ml-4">
-            <li>Access your personal information</li>
-            <li>Correct inaccurate data</li>
-            <li>Request deletion of your data</li>
-            <li>Object to processing of your data</li>
-            <li>Export your data</li>
-          </ul>
-        </section>
-        
-        <section className="mb-8">
-          <h2 className="text-xl font-semibold mb-3 text-gray-900">6. Cookies and Tracking</h2>
-          <p className="text-gray-700 leading-relaxed">
-            We use cookies and similar tracking technologies to track activity on our Service and hold certain information. You can instruct your browser to refuse all cookies or to indicate when a cookie is being sent.
-          </p>
-        </section>
-        
-        <section className="mb-8">
-          <h2 className="text-xl font-semibold mb-3 text-gray-900">7. Changes to This Policy</h2>
-          <p className="text-gray-700 leading-relaxed">
-            We may update our Privacy Policy from time to time. We will notify you of any changes by posting the new Privacy Policy on this page and updating the &quot;Effective Date.&quot;
-          </p>
-        </section>
-        
-        <section className="mb-8">
-          <h2 className="text-xl font-semibold mb-3 text-gray-900">8. Contact Us</h2>
-          <p className="text-gray-700 leading-relaxed">
-            If you have any questions about this Privacy Policy, please contact us at{" "}
-            <a href="mailto:privacy@pronia.app" className="text-blue-600 hover:underline">
-              privacy@pronia.app
-            </a>
-          </p>
-        </section>
+
+          <section>
+            <h2 className="text-xl font-bold text-black mb-3">1. Information We Collect</h2>
+            <p>
+              We collect information you provide directly, including your email address, username, profile information, and practice data you choose to log.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="text-xl font-bold text-black mb-3">2. How We Use Your Information</h2>
+            <p>
+              We use your information to provide and improve Pronia, personalize your experience, and communicate with you about your account and updates.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="text-xl font-bold text-black mb-3">3. Information Sharing</h2>
+            <p>
+              We do not sell your personal information. We may share information with service providers who help us operate Pronia, or when required by law.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="text-xl font-bold text-black mb-3">4. Data Security</h2>
+            <p>
+              We implement appropriate security measures to protect your personal information. However, no method of transmission over the Internet is 100% secure.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="text-xl font-bold text-black mb-3">5. Your Rights</h2>
+            <p>
+              You may access, update, or delete your account information at any time through your profile settings. You may also request a copy of your data.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="text-xl font-bold text-black mb-3">6. Contact</h2>
+            <p>
+              For questions about this Privacy Policy, please contact{" "}
+              <a 
+                href="mailto:support@pronia.app"
+                className="text-black underline"
+              >
+                support@pronia.app
+              </a>
+            </p>
+          </section>
+        </div>
       </div>
     </div>
   );
 }
-
