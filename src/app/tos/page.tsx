@@ -9,7 +9,7 @@ export default function TermsOfService() {
         {/* Back link */}
         <Link 
           href="/" 
-          className="text-gray-500 hover:text-black text-lg mb-8 inline-block"
+          className="text-gray-500 hover:text-black text-3xl mb-8 inline-block transition-colors"
           style={{ fontFamily: "Courier New, Courier, monospace" }}
         >
           ←

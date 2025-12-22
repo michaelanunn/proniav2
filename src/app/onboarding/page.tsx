@@ -539,7 +539,7 @@ export default function Onboarding() {
             <div className="text-center mt-4">
               <Link 
                 href="/" 
-                className="text-lg text-gray-400 hover:text-gray-600"
+                className="text-sm text-gray-400 hover:text-gray-600"
               >
                 ←
               </Link>
