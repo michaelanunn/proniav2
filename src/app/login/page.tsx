@@ -42,28 +42,28 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen min-h-dvh flex flex-col items-center justify-center bg-amber-50 px-4">
+    <div className="min-h-screen min-h-dvh flex flex-col items-center justify-center bg-stone-100 px-4">
       <div className="w-full max-w-md">
         {/* Logo */}
         <h1 
-          className="text-4xl font-bold text-black mb-10 text-center tracking-tight"
+          className="text-3xl font-bold text-black mb-6 text-center"
           style={{ fontFamily: "Times New Roman, Times, serif" }}
         >
           PRONIA
         </h1>
 
         {/* Card */}
-        <div className="bg-white p-8 shadow-[0_4px_24px_rgba(0,0,0,0.12)] border border-amber-200">
+        <div className="bg-white p-6 shadow-[0_8px_30px_rgba(0,0,0,0.12)] border border-stone-200">
           <h2 
-            className="text-2xl font-bold text-center mb-10 tracking-wide"
-            style={{ fontFamily: "Times New Roman, Times, serif", letterSpacing: "0.15em" }}
+            className="text-xl font-semibold text-center mb-6"
+            style={{ fontFamily: "Times New Roman, Times, serif" }}
           >
-            WELCOME BACK
+            Welcome back
           </h2>
 
           {/* Error Message */}
           {error && (
-            <div className="bg-red-50 border border-red-300 text-red-700 px-4 py-3 mb-6 text-sm">
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 mb-4 text-sm">
               {error}
             </div>
           )}
@@ -73,7 +73,7 @@ export default function Login() {
             type="button"
             onClick={handleGoogleSignIn}
             disabled={isLoading}
-            className="w-full py-4 border border-black bg-white text-black tracking-wide hover:bg-amber-50 transition-colors flex items-center justify-center gap-3 disabled:opacity-50 mb-6"
+            className="w-full py-3 border border-black bg-white text-black hover:bg-stone-50 transition-colors flex items-center justify-center gap-3 disabled:opacity-50 mb-4"
             style={{ fontFamily: "Times New Roman, Times, serif" }}
           >
             <svg className="h-5 w-5" viewBox="0 0 24 24">
@@ -98,43 +98,38 @@ export default function Login() {
           </button>
 
           {/* Divider */}
-          <div className="flex items-center my-8">
-            <div className="flex-1 border-t border-amber-200"></div>
-            <span 
-              className="px-4 text-sm text-amber-600"
-              style={{ fontFamily: "Courier New, Courier, monospace" }}
-            >
-              or
-            </span>
-            <div className="flex-1 border-t border-amber-200"></div>
+          <div className="flex items-center my-4">
+            <div className="flex-1 border-t border-stone-200"></div>
+            <span className="px-4 text-sm text-stone-400">or</span>
+            <div className="flex-1 border-t border-stone-200"></div>
           </div>
 
           {/* Email/Password Form */}
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium mb-2">Email</label>
+              <label className="block text-sm font-medium mb-1">Email</label>
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="w-full py-4 px-4 bg-white border border-amber-200 focus:outline-none focus:border-black text-black transition-colors"
+                className="w-full py-3 px-4 bg-white border border-stone-200 focus:outline-none focus:border-black text-black transition-colors"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-2">Password</label>
+              <label className="block text-sm font-medium mb-1">Password</label>
               <div className="relative">
                 <input
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  className="w-full py-4 px-4 pr-12 bg-white border border-amber-200 focus:outline-none focus:border-black text-black transition-colors"
+                  className="w-full py-3 px-4 pr-12 bg-white border border-stone-200 focus:outline-none focus:border-black text-black transition-colors"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-amber-400 hover:text-black transition-colors"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-stone-400 hover:text-black transition-colors"
                 >
                   {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                 </button>
@@ -144,7 +139,7 @@ export default function Login() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full py-4 bg-black text-white tracking-wide hover:bg-amber-900 transition-colors disabled:opacity-50"
+              className="w-full py-3 bg-black text-white hover:bg-stone-800 transition-colors disabled:opacity-50"
               style={{ fontFamily: "Times New Roman, Times, serif" }}
             >
               {isLoading ? (
@@ -156,11 +151,10 @@ export default function Login() {
           </form>
 
           {/* Forgot Password Link */}
-          <div className="mt-8 text-center">
+          <div className="mt-4 text-center">
             <Link 
               href="/forgot-password" 
-              className="text-sm text-amber-700 hover:text-black transition-colors"
-              style={{ fontFamily: "Courier New, Courier, monospace" }}
+              className="text-sm text-stone-500 hover:text-black transition-colors"
             >
               Forgot password?
             </Link>
@@ -168,10 +162,7 @@ export default function Login() {
         </div>
 
         {/* Sign Up Link */}
-        <p 
-          className="mt-10 text-center text-sm text-amber-800"
-          style={{ fontFamily: "Courier New, Courier, monospace" }}
-        >
+        <p className="mt-6 text-center text-sm text-stone-600">
           Don&apos;t have an account?{" "}
           <Link href="/signup" className="text-black font-semibold hover:underline">
             Sign up
@@ -179,11 +170,10 @@ export default function Login() {
         </p>
 
         {/* Back to Home */}
-        <div className="text-center mt-6">
+        <div className="text-center mt-4">
           <Link 
             href="/" 
-            className="text-sm text-amber-600 hover:text-black transition-colors"
-            style={{ fontFamily: "Courier New, Courier, monospace" }}
+            className="text-sm text-stone-400 hover:text-black transition-colors"
           >
             ←
           </Link>

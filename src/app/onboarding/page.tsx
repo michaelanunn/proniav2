@@ -179,39 +179,39 @@ export default function Onboarding() {
   // Show loading while checking auth or redirecting
   if (isLoading || !user || !hasCheckedProfile) {
     return (
-      <div className="min-h-screen bg-amber-50 flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-amber-600" />
+      <div className="min-h-screen bg-stone-100 flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-stone-400" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen min-h-dvh flex flex-col items-center justify-center bg-amber-50 px-4 py-8">
+    <div className="min-h-screen min-h-dvh flex flex-col items-center justify-center bg-stone-100 px-4 py-8">
       <div className="w-full max-w-md">
         {/* Logo */}
         <h1 
-          className="text-4xl font-bold text-black mb-10 text-center tracking-tight"
+          className="text-3xl font-bold text-black mb-6 text-center"
           style={{ fontFamily: "Times New Roman, Times, serif" }}
         >
           PRONIA
         </h1>
 
         {/* Card */}
-        <div className="bg-white p-8 shadow-[0_4px_24px_rgba(0,0,0,0.12)] border border-amber-200">
+        <div className="bg-white p-6 shadow-[0_8px_30px_rgba(0,0,0,0.12)] border border-stone-200">
           
           {/* Step 0: Sign Up Options */}
           {step === 0 && !user && (
             <>
               <h2 
-                className="text-2xl font-bold text-center mb-10 tracking-wide"
-                style={{ fontFamily: "Times New Roman, Times, serif", letterSpacing: "0.15em" }}
+                className="text-xl font-semibold text-center mb-6"
+                style={{ fontFamily: "Times New Roman, Times, serif" }}
               >
-                CREATE ACCOUNT
+                Create your account
               </h2>
 
               {/* Error Message */}
               {error && (
-                <div className="bg-red-50 border border-red-300 text-red-700 px-4 py-3 mb-6 text-sm">
+                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 mb-4 text-sm">
                   {error}
                 </div>
               )}
