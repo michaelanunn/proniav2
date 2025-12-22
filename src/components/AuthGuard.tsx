@@ -48,13 +48,14 @@ export const AuthGuard = ({ children }: AuthGuardProps) => {
     
     // Not logged in and trying to access protected path
     if (!user && !isPublicPath) {
-      router.push("/onboarding");
+      router.push("/login");
       return;
     }
     
     // Logged in but onboarding not complete - redirect to onboarding
-    // BUT only if we haven't previously passed onboarding (prevents false redirects during profile updates)
-    if (user && !isOnOnboarding && !isOnboardingComplete(profile) && !hasPassedOnboarding.current) {
+    // BUT only for protected paths (not public pages like landing, login, signup)
+    // AND only if we haven't previously passed onboarding
+    if (user && !isPublicPath && !isOnOnboarding && !isOnboardingComplete(profile) && !hasPassedOnboarding.current) {
       router.push("/onboarding");
       return;
     }
