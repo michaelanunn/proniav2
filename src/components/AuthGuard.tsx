@@ -5,8 +5,10 @@ import { useRouter, usePathname } from "next/navigation";
 import { useEffect, useRef } from "react";
 import { Loader2 } from "lucide-react";
 
-// Pages that don't require authentication
-const PUBLIC_PATHS = ["/", "/login", "/onboarding", "/auth/callback", "/tos", "/privacy", "/forgot-password", "/reset-password"];
+// Pages that don't require authentication (exact match)
+const PUBLIC_EXACT_PATHS = ["/", "/login", "/signup", "/onboarding", "/tos", "/privacy", "/forgot-password", "/reset-password"];
+// Pages that don't require authentication (prefix match)
+const PUBLIC_PREFIX_PATHS = ["/auth/"];
 
 interface AuthGuardProps {
   children: React.ReactNode;
@@ -32,7 +34,8 @@ export const AuthGuard = ({ children }: AuthGuardProps) => {
   // Track if user has ever passed onboarding check to prevent false redirects during updates
   const hasPassedOnboarding = useRef(false);
 
-  const isPublicPath = PUBLIC_PATHS.some((path) => pathname?.startsWith(path));
+  const isPublicPath = PUBLIC_EXACT_PATHS.includes(pathname || "") || 
+    PUBLIC_PREFIX_PATHS.some((path) => pathname?.startsWith(path));
   const isOnOnboarding = pathname === "/onboarding";
   
   // Update ref when onboarding is complete

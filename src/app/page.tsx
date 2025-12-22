@@ -7,9 +7,9 @@ function HorizontalPianoKeysSVG() {
   return (
     <svg
       viewBox="0 0 1400 280"
-      className="w-[160vw] h-auto absolute -left-[30vw] -top-12"
+      className="w-full h-full absolute inset-0"
       fill="none"
-      preserveAspectRatio="xMidYMin slice"
+      preserveAspectRatio="xMidYMid slice"
     >
       <defs>
         {/* Deep gradient for white keys */}
@@ -292,14 +292,14 @@ function HorizontalPianoKeysSVG() {
 
 export default function LandingPage() {
   return (
-    <div className="min-h-screen flex flex-col bg-white text-black overflow-hidden">
-      {/* Top - Piano keys - extends off screen on all sides */}
-      <div className="relative w-full h-52 md:h-60 overflow-hidden">
+    <div className="min-h-screen min-h-dvh flex flex-col bg-white text-black overflow-hidden">
+      {/* Top - Piano keys */}
+      <div className="relative w-full h-48 sm:h-56 md:h-64 lg:h-72 overflow-hidden flex-shrink-0">
         <HorizontalPianoKeysSVG />
       </div>
 
-      {/* Center - Content - minimal spacing from piano */}
-      <div className="flex-1 flex flex-col items-center justify-center px-6 -mt-14 md:-mt-16">
+      {/* Center - Content */}
+      <div className="flex-1 flex flex-col items-center justify-center px-6 py-8">
         {/* Logo */}
         <h1
           className="text-5xl md:text-7xl font-bold tracking-tight mb-5"
@@ -336,7 +336,7 @@ export default function LandingPage() {
       </div>
 
       {/* Footer */}
-      <footer className="pb-6 pt-8 px-6">
+      <footer className="pb-6 pt-8 px-6 flex-shrink-0">
         {/* Made by text */}
         <p 
           className="text-center text-gray-500 text-sm mb-1"
