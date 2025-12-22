@@ -4,7 +4,8 @@ import { NextRequest, NextResponse } from "next/server";
 
 // GET: List posts (optionally by user)
 export async function GET(request: NextRequest) {
-  const supabase = createRouteHandlerClient({ cookies });
+  const cookieStore = await cookies();
+  const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
   const searchParams = request.nextUrl.searchParams;
   const userId = searchParams.get("user_id");
   let query = supabase
@@ -20,7 +21,8 @@ export async function GET(request: NextRequest) {
 
 // POST: Create a new post
 export async function POST(request: NextRequest) {
-  const supabase = createRouteHandlerClient({ cookies });
+  const cookieStore = await cookies();
+  const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
   const body = await request.json();
   const { media_url, media_type, caption, reply_to } = body;
   // Get user from session
