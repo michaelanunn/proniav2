@@ -179,36 +179,39 @@ export default function Onboarding() {
   // Show loading while checking auth or redirecting
   if (isLoading || !user || !hasCheckedProfile) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+      <div className="min-h-screen bg-amber-50 flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-amber-600" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 px-4 py-8">
+    <div className="min-h-screen min-h-dvh flex flex-col items-center justify-center bg-amber-50 px-4 py-8">
       <div className="w-full max-w-md">
         {/* Logo */}
         <h1 
-          className="text-3xl font-bold text-black mb-6 text-center"
+          className="text-4xl font-bold text-black mb-10 text-center tracking-tight"
           style={{ fontFamily: "Times New Roman, Times, serif" }}
         >
           PRONIA
         </h1>
 
         {/* Card */}
-        <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+        <div className="bg-white p-8 shadow-[0_4px_24px_rgba(0,0,0,0.12)] border border-amber-200">
           
           {/* Step 0: Sign Up Options */}
           {step === 0 && !user && (
             <>
-              <h2 className="text-xl font-semibold text-center mb-6">
-                Create your account
+              <h2 
+                className="text-2xl font-bold text-center mb-10 tracking-wide"
+                style={{ fontFamily: "Times New Roman, Times, serif", letterSpacing: "0.15em" }}
+              >
+                CREATE ACCOUNT
               </h2>
 
               {/* Error Message */}
               {error && (
-                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4 text-sm">
+                <div className="bg-red-50 border border-red-300 text-red-700 px-4 py-3 mb-6 text-sm">
                   {error}
                 </div>
               )}
@@ -332,11 +335,14 @@ export default function Onboarding() {
           {/* Step 1: Profile Setup */}
           {step === 1 && (
             <>
-              <h2 className="text-xl font-semibold text-center mb-6">
-                Set up your profile
+              <h2 
+                className="text-2xl font-bold text-center mb-10 tracking-wide"
+                style={{ fontFamily: "Times New Roman, Times, serif", letterSpacing: "0.1em" }}
+              >
+                YOUR PROFILE
               </h2>
               
-              <div className="flex justify-center mb-6">
+              <div className="flex justify-center mb-8">
                 <ProfilePicUploader
                   avatarUrl={avatarUrl || profile?.avatar_url}
                   onUpload={(url) => setAvatarUrl(url)}
@@ -344,7 +350,7 @@ export default function Onboarding() {
                 />
               </div>
               
-              <div className="space-y-4">
+              <div className="space-y-5">
                 <div>
                   <label className="block text-sm font-medium mb-2">Full Name</label>
                   <input
@@ -352,19 +358,19 @@ export default function Onboarding() {
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="Your name"
-                    className="w-full py-3 px-4 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent text-black"
+                    className="w-full py-4 px-4 bg-white border border-amber-200 focus:outline-none focus:border-black text-black transition-colors"
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-2">Username</label>
                   <div className="relative">
-                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">@</span>
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-amber-500">@</span>
                     <input
                       type="text"
                       value={username}
                       onChange={(e) => setUsername(e.target.value.replace(/[^a-zA-Z0-9_]/g, "").toLowerCase())}
                       placeholder="username"
-                      className="w-full py-3 pl-9 pr-4 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent text-black"
+                      className="w-full py-4 pl-9 pr-4 bg-white border border-amber-200 focus:outline-none focus:border-black text-black transition-colors"
                     />
                   </div>
                 </div>
@@ -375,7 +381,7 @@ export default function Onboarding() {
                     value={bio}
                     onChange={(e) => setBio(e.target.value)}
                     placeholder="Tell us about yourself"
-                    className="w-full py-3 px-4 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent text-black"
+                    className="w-full py-4 px-4 bg-white border border-amber-200 focus:outline-none focus:border-black text-black transition-colors"
                   />
                 </div>
                 <div>
@@ -385,7 +391,7 @@ export default function Onboarding() {
                     value={yearsPlaying}
                     onChange={(e) => setYearsPlaying(e.target.value)}
                     placeholder="e.g. 2, 5, 10+"
-                    className="w-full py-3 px-4 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent text-black"
+                    className="w-full py-4 px-4 bg-white border border-amber-200 focus:outline-none focus:border-black text-black transition-colors"
                   />
                 </div>
               </div>
@@ -395,25 +401,32 @@ export default function Onboarding() {
           {/* Step 2: Instruments */}
           {step === 2 && (
             <>
-              <h2 className="text-xl font-semibold text-center mb-2">
-                Pick your instruments
+              <h2 
+                className="text-2xl font-bold text-center mb-4 tracking-wide"
+                style={{ fontFamily: "Times New Roman, Times, serif", letterSpacing: "0.1em" }}
+              >
+                YOUR INSTRUMENTS
               </h2>
-              <p className="text-sm text-gray-500 text-center mb-6">
+              <p 
+                className="text-sm text-amber-700 text-center mb-8"
+                style={{ fontFamily: "Courier New, Courier, monospace" }}
+              >
                 Select up to 3 instruments
               </p>
               
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-4">
                 {instruments.map((instrument) => {
                   const isSelected = selectedInstruments.includes(instrument.id);
                   return (
                     <button
                       key={instrument.id}
                       onClick={() => toggleInstrument(instrument.id)}
-                      className={`py-4 px-4 rounded-lg border-2 transition-colors text-center font-medium ${
+                      className={`py-4 px-4 border transition-colors text-center font-medium ${
                         isSelected
                           ? "border-black bg-black text-white"
-                          : "border-gray-200 hover:border-gray-400"
+                          : "border-amber-200 hover:border-black bg-white"
                       }`}
+                      style={{ fontFamily: "Times New Roman, Times, serif" }}
                     >
                       {instrument.name}
                     </button>
@@ -426,23 +439,30 @@ export default function Onboarding() {
           {/* Step 3: Experience Level */}
           {step === 3 && (
             <>
-              <h2 className="text-xl font-semibold text-center mb-2">
-                What&apos;s your level?
+              <h2 
+                className="text-2xl font-bold text-center mb-4 tracking-wide"
+                style={{ fontFamily: "Times New Roman, Times, serif", letterSpacing: "0.1em" }}
+              >
+                YOUR LEVEL
               </h2>
-              <p className="text-sm text-gray-500 text-center mb-6">
+              <p 
+                className="text-sm text-amber-700 text-center mb-8"
+                style={{ fontFamily: "Courier New, Courier, monospace" }}
+              >
                 Select your experience level
               </p>
 
-              <div className="space-y-3">
+              <div className="space-y-4">
                 {experienceLevels.map((level) => (
                   <button
                     key={level.id}
                     onClick={() => setExperienceLevel(level.id)}
-                    className={`w-full py-4 rounded-lg border-2 transition-colors text-center font-medium ${
+                    className={`w-full py-4 border transition-colors text-center font-medium ${
                       experienceLevel === level.id
                         ? "border-black bg-black text-white"
-                        : "border-gray-200 hover:border-gray-400"
+                        : "border-amber-200 hover:border-black bg-white"
                     }`}
+                    style={{ fontFamily: "Times New Roman, Times, serif" }}
                   >
                     {level.label}
                   </button>
@@ -454,29 +474,35 @@ export default function Onboarding() {
           {/* Step 4: Complete */}
           {step === 4 && (
             <div className="text-center">
-              <div className="flex justify-center mb-6">
+              <div className="flex justify-center mb-8">
                 {avatarUrl ? (
                   <img 
                     src={avatarUrl} 
                     alt="Profile"
-                    className="h-24 w-24 rounded-full object-cover"
+                    className="h-24 w-24 rounded-full object-cover border-2 border-amber-200"
                   />
                 ) : (
-                  <div className="h-24 w-24 rounded-full bg-gray-100 flex items-center justify-center">
-                    <User className="h-12 w-12 text-gray-400" />
+                  <div className="h-24 w-24 rounded-full bg-amber-50 border-2 border-amber-200 flex items-center justify-center">
+                    <User className="h-12 w-12 text-amber-400" />
                   </div>
                 )}
               </div>
               
-              <h2 className="text-xl font-semibold mb-2">
-                You&apos;re all set, {name}!
+              <h2 
+                className="text-2xl font-bold mb-4 tracking-wide"
+                style={{ fontFamily: "Times New Roman, Times, serif", letterSpacing: "0.1em" }}
+              >
+                ALL SET, {name.toUpperCase()}!
               </h2>
-              <p className="text-sm text-gray-500">
+              <p 
+                className="text-sm text-amber-700"
+                style={{ fontFamily: "Courier New, Courier, monospace" }}
+              >
                 Welcome to Pronia. Start tracking your practice.
               </p>
 
               {error && (
-                <div className="mt-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+                <div className="mt-6 bg-red-50 border border-red-300 text-red-700 px-4 py-3 text-sm">
                   {error}
                 </div>
               )}
@@ -485,13 +511,14 @@ export default function Onboarding() {
 
           {/* Navigation Buttons */}
           {step > 0 && (
-            <div className="mt-6">
-              <div className="flex gap-3">
+            <div className="mt-8">
+              <div className="flex gap-4">
                 {step > 1 && (
                   <button
                     onClick={() => setStep(step - 1)}
                     disabled={isSaving}
-                    className="flex-1 py-3 border border-gray-200 rounded-lg text-black hover:bg-gray-50 transition-colors disabled:opacity-50 font-medium"
+                    className="flex-1 py-4 border border-black text-black hover:bg-amber-50 transition-colors disabled:opacity-50"
+                    style={{ fontFamily: "Times New Roman, Times, serif" }}
                   >
                     Back
                   </button>
@@ -499,7 +526,8 @@ export default function Onboarding() {
                 <button
                   onClick={handleNext}
                   disabled={!canProceed() || isSaving}
-                  className="flex-1 py-3 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:bg-gray-300 font-medium"
+                  className="flex-1 py-4 bg-black text-white tracking-wide hover:bg-amber-900 transition-colors disabled:opacity-50 disabled:bg-amber-200"
+                  style={{ fontFamily: "Times New Roman, Times, serif" }}
                 >
                   {isSaving ? (
                     <Loader2 className="h-5 w-5 animate-spin mx-auto" />
@@ -512,12 +540,12 @@ export default function Onboarding() {
               </div>
 
               {/* Progress dots */}
-              <div className="flex justify-center gap-2 mt-6">
+              <div className="flex justify-center gap-2 mt-8">
                 {[1, 2, 3, 4].map((i) => (
                   <div
                     key={i}
-                    className={`h-2 w-8 rounded-full transition-colors ${
-                      i <= step ? "bg-black" : "bg-gray-200"
+                    className={`h-2 w-8 transition-colors ${
+                      i <= step ? "bg-black" : "bg-amber-200"
                     }`}
                   />
                 ))}
@@ -529,17 +557,21 @@ export default function Onboarding() {
         {/* Login Link (only on step 0) */}
         {step === 0 && !user && (
           <>
-            <p className="mt-6 text-center text-sm text-gray-600">
+            <p 
+              className="mt-10 text-center text-sm text-amber-800"
+              style={{ fontFamily: "Courier New, Courier, monospace" }}
+            >
               Already have an account?{" "}
               <Link href="/login" className="text-black font-semibold hover:underline">
                 Log in
               </Link>
             </p>
 
-            <div className="text-center mt-4">
+            <div className="text-center mt-6">
               <Link 
                 href="/" 
-                className="text-sm text-gray-400 hover:text-gray-600"
+                className="text-sm text-amber-600 hover:text-black transition-colors"
+                style={{ fontFamily: "Courier New, Courier, monospace" }}
               >
                 ←
               </Link>
